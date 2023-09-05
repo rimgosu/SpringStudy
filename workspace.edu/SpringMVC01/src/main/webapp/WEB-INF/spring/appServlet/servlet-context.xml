@@ -21,6 +21,7 @@
 		<beans:property name="suffix" value=".jsp" />
 	</beans:bean>
 	
+	<!-- 여기 kr.spring.controller로 매핑되어있음 -->
 	<context:component-scan base-package="kr.spring.controller" />
 	
 	

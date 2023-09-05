@@ -29,9 +29,9 @@
 						<td>작성일</td>
 						<td>조회수</td>
 					</tr>
-					<c:forEach items="${list}" var="dto">
+					<c:forEach items="${list}" var="dto" varStatus="i">
 						<tr>
-							<td>${dto.idx} </td>
+							<td>${i.count} </td>
 							<td>${dto.title} </td>
 							<td>${dto.writer} </td>
 							<td>${dto.indate} </td>

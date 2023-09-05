@@ -36,8 +36,11 @@ public class BoardController {
 		list.add(b4);
 		
 		// list를 jsp로 전달해줘야할 때 model에 저장해서 씀
+		// model은 request 객체로 들어감.
+		// 객체바인딩 => 동적바인딩
 		model.addAttribute("list", list);
 		
+		// 이거 forward 방식임
 		return "boardList";
 	}
 }
