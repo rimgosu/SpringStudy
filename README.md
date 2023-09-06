@@ -23,8 +23,35 @@
 
 
 
+
+
+
+### DB 세팅
+1. MYBATIS 개요:
+   - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/9c4fcc99-fb49-4935-9429-e7db4a1c42a1)
+   - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/3de06ba0-2e9c-4ea3-8feb-567ce1db1ce8)
+   - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/a4c043ea-c2cc-4a22-a80c-0dd33cf236ed)
+
+   - https://mybatis.org/mybatis-3/getting-started.html
+   - JDBC 쉽게 API로!
+   - hikariCP, JDBC, SPRING JDBC, MYBATIS, MYBATIS-SPRING 연결.
+   - 
+
+2. mybatis : https://mvnrepository.com/artifact/org.mybatis/mybatis/3.4.6
+3. hikariCP : https://mvnrepository.com/artifact/com.zaxxer/HikariCP/3.4.1
+4. MySQL Connector Java : https://mvnrepository.com/artifact/mysql/mysql-connector-java/5.1.42
+5. Spring JDBC (스프링 버전과 맞춰줘야함) : https://mvnrepository.com/artifact/org.springframework/spring-jdbc/5.0.2.RELEASE
+6. mybatis spring : https://mvnrepository.com/artifact/org.mybatis/mybatis-spring/1.3.2
+7. 루트컨텍스트 설정.txt => root-context.xml 붙여 넣기
+      
+
+
+
+
+
+
   
-### 세부 세팅
+### 세부 세팅 (라이브러리)
 1. 부트스트랩 : 디자인 탬플릿 적용
    - https://www.w3schools.com/bootstrap/tryit.asp?filename=trybs_panels_heading&stacked=h
 
@@ -40,12 +67,18 @@
 
 
 
+
+
+
+
+
 ### mysql 세팅
 1. C++ 다운로드
    - mysql 실행 안되는 경우 :
    - C:\eGovFrame-4.0.0\bin\mysql-5.7.32\startup.bat 눌렀는데, Version: '5.7.32-log'  socket: ''  port: 3306  MySQL Community Server (GPL)라고 뜨면 잘 되는 것임.
    - https://www.microsoft.com/ko-KR/download/details.aspx?id=40784
-
+2. kr.spring.mapper :
+   - Type : MySql_5.1 ver
 
 
 
@@ -74,7 +107,7 @@
 
 ### 9월 6일
 1. web.xml => 스프링 정보 총괄
-   - Root Spring
+   - Root Spring => root-context.xml (여기에 jdbc 설정 해줘야함 - 루트컨텍스트 설정.txt)
    - ContextLoaderListener
    - DispatcherServlet => servlet-context.xml (디스패쳐 서블릿이 생성될 때 이 파일 참조함)
 
@@ -82,7 +115,11 @@
    - <context:component-scan base-package="kr.spring.controller" />
    - 여기 기본 context 매핑되어있음.
 
-3. 바뀜 ㅇㅅㅇ
+3. root-context.xml
+   - 루트컨텍스트 설정.txt => root-context.xml 붙여 넣기
+   - hikariConfig : db url, id, pw 정보 담고 있음
+   - dataSource : getConnection() [hikariConfig를 참조]
+   - SqlSessionFactoryBean : psmt, getClose() [dataSource를 참조]
 
 
 
