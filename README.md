@@ -27,7 +27,7 @@
 
 
 ### DB 세팅
-#### 1. MYBATIS 개요:
+#### 1. MYBATIS 개요
    - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/9c4fcc99-fb49-4935-9429-e7db4a1c42a1)
    - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/3de06ba0-2e9c-4ea3-8feb-567ce1db1ce8)
    - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/a4c043ea-c2cc-4a22-a80c-0dd33cf236ed)
@@ -37,12 +37,18 @@
    - hikariCP, JDBC, SPRING JDBC, MYBATIS, MYBATIS-SPRING 연결.
    - 
 
-#### 2. mybatis : https://mvnrepository.com/artifact/org.mybatis/mybatis/3.4.6
-#### 3. hikariCP : https://mvnrepository.com/artifact/com.zaxxer/HikariCP/3.4.1
-#### 4. MySQL Connector Java : https://mvnrepository.com/artifact/mysql/mysql-connector-java/5.1.42
-#### 5. Spring JDBC (스프링 버전과 맞춰줘야함) : https://mvnrepository.com/artifact/org.springframework/spring-jdbc/5.0.2.RELEASE
-#### 6. mybatis spring : https://mvnrepository.com/artifact/org.mybatis/mybatis-spring/1.3.2
-#### 7. 루트컨텍스트 설정.txt => root-context.xml 붙여 넣기
+#### 2. mybatis
+   - https://mvnrepository.com/artifact/org.mybatis/mybatis/3.4.6
+#### 3. hikariCP
+   - https://mvnrepository.com/artifact/com.zaxxer/HikariCP/3.4.1
+#### 4. MySQL Connector Java 
+   - https://mvnrepository.com/artifact/mysql/mysql-connector-java/5.1.42
+#### 5. Spring JDBC (스프링 버전과 맞춰줘야함) 
+   - https://mvnrepository.com/artifact/org.springframework/spring-jdbc/5.0.2.RELEASE
+#### 6. mybatis spring 
+   - https://mvnrepository.com/artifact/org.mybatis/mybatis-spring/1.3.2
+#### 7. 루트컨텍스트 설정.txt 
+   - => root-context.xml 붙여 넣기
       
 
 
@@ -55,7 +61,7 @@
 #### 1. 부트스트랩 : 디자인 탬플릿 적용
    - https://www.w3schools.com/bootstrap/tryit.asp?filename=trybs_panels_heading&stacked=h
 
-#### 2. Lombok :
+#### 2. Lombok
    - https://projectlombok.org/
    - https://mvnrepository.com/artifact/org.projectlombok/lombok
    - 자동으로 생성자, getter/setter 생성. dto 수정 시 빠르게 대응 할 수 있음.
@@ -77,7 +83,7 @@
    - mysql 실행 안되는 경우 :
    - C:\eGovFrame-4.0.0\bin\mysql-5.7.32\startup.bat 눌렀는데, Version: '5.7.32-log'  socket: ''  port: 3306  MySQL Community Server (GPL)라고 뜨면 잘 되는 것임.
    - https://www.microsoft.com/ko-KR/download/details.aspx?id=40784
-#### 2. kr.spring.mapper :
+#### 2. kr.spring.mapper 
    - Type : MySql_5.1 ver
 
 
@@ -111,7 +117,7 @@
    - ContextLoaderListener
    - DispatcherServlet => servlet-context.xml (디스패쳐 서블릿이 생성될 때 이 파일 참조함)
 
-#### 2. servlet-context.xml :
+#### 2. servlet-context.xml 
    - <context:component-scan base-package="kr.spring.controller" />
    - 여기 기본 context 매핑되어있음.
 
