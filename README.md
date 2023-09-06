@@ -29,15 +29,16 @@
 
 
 ### DB 세팅
-1. MYBATIS 개요
-   - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/9c4fcc99-fb49-4935-9429-e7db4a1c42a1)
-   - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/3de06ba0-2e9c-4ea3-8feb-567ce1db1ce8)
-   - ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/a4c043ea-c2cc-4a22-a80c-0dd33cf236ed)
 
+
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/9c4fcc99-fb49-4935-9429-e7db4a1c42a1)
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/3de06ba0-2e9c-4ea3-8feb-567ce1db1ce8)
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/a4c043ea-c2cc-4a22-a80c-0dd33cf236ed)
+
+1. MYBATIS 개요
    - https://mybatis.org/mybatis-3/getting-started.html
    - JDBC 쉽게 API로!
    - hikariCP, JDBC, SPRING JDBC, MYBATIS, MYBATIS-SPRING 연결.
-   - 
 
 2. mybatis : https://mvnrepository.com/artifact/org.mybatis/mybatis/3.4.6
 3. hikariCP : https://mvnrepository.com/artifact/com.zaxxer/HikariCP/3.4.1
