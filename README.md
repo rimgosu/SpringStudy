@@ -1,5 +1,7 @@
 # SpringStudy
 
+## Settings
+
 ### 필수세팅
 1. 전자정부프레임워크
    - 표준프레임워크 개발자 교육 교재 및 실습 for Win (V4.0.0)
@@ -86,7 +88,7 @@
 
 
 
-
+## Lecture Note
 
 ### 9월 5일 (스프링 개요& 게시판 만들기-1)
 1. ContextPath 변경하는 법 
