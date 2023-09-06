@@ -82,7 +82,7 @@
    - <context:component-scan base-package="kr.spring.controller" />
    - 여기 기본 context 매핑되어있음.
 
-3. 
+3. 바뀜 ㅇㅅㅇ
 
 
 
