@@ -121,6 +121,18 @@
    - dataSource : getConnection() [hikariConfig를 참조]
    - SqlSessionFactoryBean : psmt, getClose() [dataSource를 참조]
 
+4. BoardMapper.java (인터페이스)
+```
+@Mapper // MyBatis 인터페이스를 찾기위해 달아주는 부분
+public interface BoardMapper {
+	
+	@Select("SELECT * FROM BOARD")
+	public List<Board> getLists();
+
+}
+```
+
+
 
 
 
