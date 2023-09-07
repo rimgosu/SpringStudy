@@ -148,12 +148,35 @@ public interface BoardMapper {
 1. 리다이렉트 방식
    - return "redirect:주소";
    - return "redirect:boardList.do";
-2. <form><input name="DTO의 속성 이름"
+     
+2. 간편한 파라미터 받기 : 
    - 1. 기본생성자
    - 2. getter/setter
-   - 3. dto의 속성 이름
+   - 3. dto의 속성 이름 (name="DTO의 속성 이름")
    - 이 셋 조건을 충족하면 request.getParameter 할 필요 없이 dto자체로 받을 수 있다.
-3. 
 
+3. MyBatis XML Mapper
+   - 1. Mapper 이름 동일
+   - 2. &lt;select id="Mapper 매서드 이름과 동일"&gt;
 
+   
+```
+<select id="getLists" resultType="kr.spring.entity.Board">
+	SELECT * FROM BOARD ORDER BY INDATE DESC
+</select>
+
+<insert id="boardInsert">
+	INSERT INTO BOARD (TITLE,	CONTENT,	WRITER)
+	VALUES(#{title}, #{content}, #{writer})
+</insert>
+```
+
+4. @RequestParam("idx") int idx :
+   - request.getParameter과 동일한 역할.
+  
+5. 줄바꿈 :
+   - <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+   - &lt;body&gt; <% pageContext.setAttribute("newLineChar", "\n"); %> &lt;/body&gt;
+   - ${fn:replace( vo.content, newLineChar, "&lt;br&gt;") }
+   - ${fn:split( vo.indate, " ")[0] }
 
