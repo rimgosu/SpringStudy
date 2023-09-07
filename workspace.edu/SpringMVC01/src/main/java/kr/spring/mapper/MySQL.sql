@@ -28,4 +28,5 @@ INSERT INTO BOARD (TITLE,	CONTENT,	WRITER)
 VALUES('[속보]명훈쌤 시네에서 미상의 여자와 걷는 모습 발견되어4', '힝 뻥인데~4', '준용쌤4');
 
 SELECT * FROM BOARD;
+DELETE FROM BOARD WHERE IDX=1;
 COMMIT;
