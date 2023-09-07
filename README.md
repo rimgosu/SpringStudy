@@ -22,6 +22,9 @@
    - <web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee" =>
    - <web-app version="2.5" xmlns="http://Java.sun.com/xml/ns/javaee"
 
+5. 한글 깨짐 해결 :
+   - 한글깨짐방지.txt => web.xml로 붙여넣기
+
 
 
 
@@ -109,7 +112,7 @@
 
 
 ### 9월 6일
-1. web.xml => 스프링 정보 총괄
+1. web.xml => 스프링 정보 총괄, 톰캣이 읽을 때 가장 먼저 읽는 파일
    - Root Spring => root-context.xml (여기에 jdbc 설정 해줘야함 - 루트컨텍스트 설정.txt)
    - ContextLoaderListener
    - DispatcherServlet => servlet-context.xml (디스패쳐 서블릿이 생성될 때 이 파일 참조함)
@@ -141,9 +144,16 @@ public interface BoardMapper {
 
 
 
-
-
-
+### 9월 7일
+1. 리다이렉트 방식
+   - return "redirect:주소";
+   - return "redirect:boardList.do";
+2. <form><input name="DTO의 속성 이름"
+   - 1. 기본생성자
+   - 2. getter/setter
+   - 3. dto의 속성 이름
+   - 이 셋 조건을 충족하면 request.getParameter 할 필요 없이 dto자체로 받을 수 있다.
+3. 
 
 
 
