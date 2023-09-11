@@ -1,3 +1,4 @@
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/c6f2efba-f753-4251-9445-4264b7fd18cb)![image](https://github.com/rimgosu/SpringStudy/assets/120752098/edcba030-82e2-421f-b45d-51dac5d4d9c6)
 # SpringStudy
 
 ## Settings
@@ -15,6 +16,8 @@
    - 프로젝트 클릭 => Alt+F5 => Force update if snapshots
   
 3. 아파치 톰캣 등록 :
+   > ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/f1983a92-1bb5-4866-a69c-0ff0da62a847)
+
    - 프로젝트 끌어서 Server 탭의 Tomcat에 드래그해서 끌어 당겨야함
   
 4. 오류메시지 지우기 :
@@ -179,4 +182,29 @@ public interface BoardMapper {
    - &lt;body&gt; <% pageContext.setAttribute("newLineChar", "\n"); %> &lt;/body&gt;
    - ${fn:replace( vo.content, newLineChar, "&lt;br&gt;") }
    - ${fn:split( vo.indate, " ")[0] }
+
+
+
+
+
+
+### 9월 11일
+1. @RequestParam("idx") int idx => int idx
+   - 로 짧게 써도 파라미터 가져올 수 있다.
+   - ※단, 파라미터의 name과 같은 변수명을 써야
+
+2. &lt;input type="hidden" name="idx" value="${vo.idx }"&gt;
+   - type="hidden" 옵션으로 데이터 더 보낼 수 있음.
+
+3. PathVariable
+   > ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/8e51c709-9e0f-4819-9095-9d7ec77702d4)
+
+   - get 방식에서, key값을 설정을 안하고 값을 넘겨줄 수 있다.
+   - 1. boardContent.do?idx=${dto.idx } => boardContent.do/${dto.idx }
+   - 2. /boardContent.do => /boardContent.do/{idx}
+   - 3. @RequestParam("idx") => @RequestParam("idx")
+   - 4. ../ : 경로 안으로 들어온 처리가 되어서, 경로 밖으로 나가줘야함.
+
+
+
 
