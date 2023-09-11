@@ -1,4 +1,7 @@
-![image](https://github.com/rimgosu/SpringStudy/assets/120752098/c6f2efba-f753-4251-9445-4264b7fd18cb)![image](https://github.com/rimgosu/SpringStudy/assets/120752098/edcba030-82e2-421f-b45d-51dac5d4d9c6)
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/dbe4a854-f60f-4e27-9a7c-9c411d1662ad)
+
+
+
 # SpringStudy
 
 ## Settings
