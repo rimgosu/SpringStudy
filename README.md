@@ -191,7 +191,7 @@ public interface BoardMapper {
 
 
 
-### 9월 11일
+### 9월 11일 (PathVariable, 비동기 통신)
 1. @RequestParam("idx") int idx => int idx
    - 로 짧게 써도 파라미터 가져올 수 있다.
    - ※단, 파라미터의 name과 같은 변수명을 써야
