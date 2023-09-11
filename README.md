@@ -205,6 +205,48 @@ public interface BoardMapper {
    - 3. @RequestParam("idx") => @RequestParam("idx")
    - 4. ../ : 경로 안으로 들어온 처리가 되어서, 경로 밖으로 나가줘야함.
 
+4. jakson
+   - json 응답 라이브러리
+```
+<!-- json 방식으로 응답하기 위한 API -->
+<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+<dependency>
+	<groupId>com.fasterxml.jackson.core</groupId>
+	<artifactId>jackson-databind</artifactId>
+	<version>2.9.8</version>
+</dependency>
+```
 
+5. @ResponseBody
+   - 비동기임을 알려주는 어노테이션
+```
+public @ResponseBody List<Board> boardList() {}
+```
 
+6. Ajax
+```
+<script type="text/javascript">
+// 처음 실행될 때 자동 실행 => 생성자 느낌
+// html 다 로딩되고 아래 코드 실행
+$(document).ready(function() {
+	loadList();
+});
+
+function loadList() {
+	// 게시글 리스트 가져오기
+	// ajax - 요청 url, 어떻게 데이터 받을지, 요청방식 등 .. => 객체{}로 넣기
+	$.ajax({
+		url : "boardList.do",
+		type : "get",
+		dataType : "json",
+		success : makeView, // callback 함수
+		error : function() {alert("error");}
+	});
+}
+
+function makeView(data) {
+	console.log(data);
+}
+</script>
+```
 
