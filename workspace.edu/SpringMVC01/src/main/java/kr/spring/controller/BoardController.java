@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -66,6 +67,8 @@ public class BoardController {
 	
 	
 	
+	
+	
 	@RequestMapping("/boardForm.do")
 	public String boardForm() {
 		System.out.println("글쓰기 페이지 이동");
@@ -92,23 +95,57 @@ public class BoardController {
 	
 	
 	
-	@RequestMapping("/boardContent.do")
-	public String boardContent(@RequestParam("idx") int idx, Model model) {
+	@RequestMapping("/boardContent.do/{idx}")
+	public String boardContent(@PathVariable("idx") int idx, Model model) {
 		System.out.println("게시글 상세보기 기능 수행");
+		mapper.boardCount(idx);
 		Board vo = mapper.boardContent(idx);
 		model.addAttribute("vo", vo);
 		return "boardContent";
 	}
 	
 	
-	@RequestMapping("/boardDelete.do")
-	public String boardDelete(@RequestParam("idx") int idx) {
+	
+	
+	
+	
+	
+	
+	
+	
+	@RequestMapping("/boardDelete.do/{idx}")
+	public String boardDelete(@PathVariable("idx") int idx) {
 		System.out.println("게시글 삭제 기능 수행");
 		mapper.boardDelete(idx);
 		return "redirect:/boardList.do";
 	}
 	
 	
+	
+	
+	
+	
+	
+	
+	
+	@RequestMapping("/boardUpdateForm.do/{idx}")
+	public String boardUpdateForm(@PathVariable("idx") int idx, Model model) {
+		System.out.println("게시글 수정화면이동 기능 수행");
+		Board vo = mapper.boardContent(idx);
+		model.addAttribute("vo", vo);
+		return "boardUpdateForm";
+	}
+	
+	
+	
+	
+	
+	@RequestMapping("/boardUpdate.do")
+	public String boardUpdate(Board board) {
+		System.out.println("게시글 수정 기능 수행");
+		mapper.boardUpdate(board);
+		return "redirect:/boardList.do";
+	}
 	
 	
 	

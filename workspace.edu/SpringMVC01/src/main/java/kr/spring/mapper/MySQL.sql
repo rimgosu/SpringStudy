@@ -30,3 +30,12 @@ VALUES('[속보]명훈쌤 시네에서 미상의 여자와 걷는 모습 발견�
 SELECT * FROM BOARD;
 DELETE FROM BOARD WHERE IDX=1;
 COMMIT;
+
+update board 
+set title="no", content="수정됨2", writer="수정됨1"
+where idx=4;
+
+update board set count=count+1
+where idx=4;
+
+

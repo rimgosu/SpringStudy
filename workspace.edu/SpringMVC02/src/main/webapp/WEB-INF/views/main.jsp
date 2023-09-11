@@ -16,7 +16,7 @@
 </head>
 <body>
 	<div class="container">
-		<h2>Spring MVC01</h2>
+		<h2>나가주세요02</h2>
 		<div class="panel panel-default">
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
@@ -30,27 +30,46 @@
 						<td>작성일</td>
 						<td>조회수</td>
 					</tr>
-					<c:forEach items="${list}" var="dto" varStatus="i">
-						<tr>
-							<td>${i.count} </td>
-							<td> <a href="boardContent.do/${dto.idx }">${dto.title}</a> </td>
-							<td>${dto.writer} </td>
-							<td>${fn:split(dto.indate, " ")[0] } </td>
-							<td>${dto.count} </td>
-						</tr>
-
-					</c:forEach>
+					
+					<tbody id="#view">
+					<!-- 비동기 방식으로 가져온 게시글 나오게할 부분 -->
+					</tbody>
+					
 
 
 				</table>
 				
 				
-				<a href="boardForm.do" class="btn btn-primary btn-sm">글쓰기</a>
-
 			</div>
 			<div class="panel-footer">스프링게시판 - 박병관</div>
 		</div>
 	</div>
+	
+	<script type="text/javascript">
+	
+		// 처음 실행될 때 자동 실행 => 생성자 느낌
+		// html 다 로딩되고 아래 코드 실행
+		$(document).ready(function() {
+			loadList();
+		});
+	
+		function loadList() {
+			// 게시글 리스트 가져오기
+			// ajax - 요청 url, 어떻게 데이터 받을지, 요청방식 등 .. => 객체{}로 넣기
+			$.ajax({
+				url : "boardList.do",
+				type : "get",
+				dataType : "json",
+				success : makeView, // callback 함수
+				error : function() {alert("error");}
+			});
+		}
+		function makeView(data) {
+			console.log(data);
+		}
+	
+	
+	</script>
 
 </body>
 </html>
