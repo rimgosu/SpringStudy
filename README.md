@@ -253,3 +253,22 @@ function makeView(data) {
 </script>
 ```
 
+### 9월 12일 (비동기 통신-2)
+
+1. jquery 반복문 활용
+```
+$.each(data, function(index, obj) {
+				listHtml += "<tr>";
+				listHtml += "<td>" + index + "</td>";
+				listHtml += "<td>" + obj.title + "</td>";
+				listHtml += "<td>" + obj.writer + "</td>";
+				listHtml += "<td>" + obj.indate + "</td>";
+				listHtml += "<td>" + obj.count + "</td>";
+				listHtml += "</tr>";
+			});
+			
+			$("#view").html(listHtml);
+```
+
+2. \&nbsp;
+   - 줄바꿈
