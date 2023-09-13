@@ -38,4 +38,6 @@ where idx=4;
 update board set count=count+1
 where idx=4;
 
-
+update board
+set title="no", content="수정됨2", writer="수정됨1"
+where idx=4;
