@@ -271,4 +271,62 @@ $.each(data, function(index, obj) {
 ```
 
 2. \&nbsp;
-   - 줄바꿈
+   * 줄바꿈
+  
+3. javascript $().serialize() 
+   ``` fData = $("#frm").serialize(); ```
+   * 1) {"키" : 값, "키" : 값}
+   * 2) serialData = "title=" + title + "&content=" + content;
+  
+
+
+### 9월 13일 (REST-1)
+
+1. Rest 전송 방식
+   > URL에 통일성, 요청하는 URL+전송방식 묶어서 요청 가능!
+   * URL의 통일성, 단순화
+
+2. @RestController
+```
+@RestController
+public class BoardRestController {
+	@Autowired
+	private BoardMapper mapper;
+}
+```
+
+3. BoardRestController => 비동기 방식
+   *  @ResponseBody 필요 없다. <br>
+   => 어차피 비동기 방식이기 때문!
+
+4. 매핑
+   * @RequestMapping("/주소")
+```
+@RequestMapping("/board")
+@RestController
+public class BoardRestController {
+	@RequestMapping("/all")
+	public List<Board> boardList() {...}
+}
+```
+
+5. 매핑 주소 사용 방법
+   * $.ajax({url : "board/주소"})
+```
+$.ajax({url : "board/all"})
+```
+
+6. Mapping Type:
+   1. @RequestMapping : get, post
+   2. @GetMapping : get
+   3. @PostMapping : post
+   4. @DeleteMapping : delete
+
+
+
+
+
+
+
+
+
