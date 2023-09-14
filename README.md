@@ -366,5 +366,8 @@ public void boardUpdate(@RequestBody Board board) {
 2. 네비게이션 바 BOOTSTRAP
    - <https://www.w3schools.com/bootstrap/bootstrap_navbar.asp>
 
-3. &lt;c:set var="contextPath" value="${pageContext.request.contextPath}"&gt;&lt;/c:set&gt;
+3. contextPath 전역변수로 지정
+```<!-- context-path 값을 내장 객체 변수로 저장 -->
+<c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
+```
 
