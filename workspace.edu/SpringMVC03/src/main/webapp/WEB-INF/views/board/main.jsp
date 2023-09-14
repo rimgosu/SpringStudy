@@ -16,7 +16,8 @@
 </head>
 <body>
 	<div class="container">
-		<h2>나가주세요02</h2>
+		<jsp:include page="../common/header.jsp"></jsp:include>
+		<h2>나가주세요03</h2>
 		<div class="panel panel-default">
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
@@ -203,7 +204,7 @@
 
 		function goContent(idx) {
 			if ($("#c" + idx).css("display") == "none") {
-				
+
 				// 새로운 게시글 정보 가져와서 ajax로 뿌려줌
 				$.ajax({
 					url : "board/" + idx,
