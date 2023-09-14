@@ -71,6 +71,14 @@
    - https://projectlombok.org/
    - https://mvnrepository.com/artifact/org.projectlombok/lombok
    - 자동으로 생성자, getter/setter 생성. dto 수정 시 빠르게 대응 할 수 있음.
+  
+```
+/* lombok => 생성자 만들어주는 api
+ @Data => getter/setter
+ @AllArgsConstructor => 전체 생성자
+ @NoArgsConstructor => 빈 생성자
+ @ToString => toString */
+```
 
 
 
@@ -321,12 +329,41 @@ $.ajax({url : "board/all"})
    2. @GetMapping : get
    3. @PostMapping : post
    4. @DeleteMapping : delete
+   5. @PutMapping : update 
 
 
 
 
+### 9월 14일 (REST-2)
 
+1. update / put 매서드
+```
+$.ajax({
+	url : "board/update",
+	type : "put",
+	contentType : "application/json;charset=utf-8",
+	data : JSON.stringify({
+		"idx" : idx,
+		"title" : title,
+		"content" : content,
+		"writer" : writer
+	}),
+	...
+})
+```
+```
+@PutMapping
+@RequestMapping("/update")
+public void boardUpdate(@RequestBody Board board) {
+	System.out.println("게시글 수정 수행");
+	mapper.boardUpdate(board);
+}
+```
+> @RequestBody : <br>
+> 자바 객체로 변환해주는 것임. <br>
+> data를 JSON.stirngify()로 json => stirng으로 변환하므로 자바 객체로 변환해줄 필요가 있다.
 
+2. 
 
 
 
