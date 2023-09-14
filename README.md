@@ -363,7 +363,8 @@ public void boardUpdate(@RequestBody Board board) {
 > 자바 객체로 변환해주는 것임. <br>
 > data를 JSON.stirngify()로 json => stirng으로 변환하므로 자바 객체로 변환해줄 필요가 있다.
 
-2. 
+2. 네비게이션 바 BOOTSTRAP
+   - <https://www.w3schools.com/bootstrap/bootstrap_navbar.asp>
 
-
+3. &lt;c:set var="contextPath" value="${pageContext.request.contextPath}"&gt;&lt;/c:set&gt;
 
