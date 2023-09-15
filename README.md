@@ -111,6 +111,9 @@
 ### 9월 5일 (스프링 개요& 게시판 만들기-1)
 1. ContextPath 변경하는 법 
    - server.xml, context 태그, path 변경
+```
+<Context docBase="SpringMVC03" path="/controller" reloadable="true" source="org.eclipse.jst.jee.server:SpringMVC03"/></Host>
+```
 
 2. @Controller
    - @RequestMapping(value = "/", method = RequestMethod.GET)
@@ -370,4 +373,18 @@ public void boardUpdate(@RequestBody Board board) {
 ```<!-- context-path 값을 내장 객체 변수로 저장 -->
 <c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
 ```
+
+
+
+### 9월 15일
+1. modal :
+   - [modal bootstrap](https://www.w3schools.com/bootstrap/tryit.asp?filename=trybs_modal&stacked=h)
+   - 사용자의 이목을 집중시키기 위한 그래픽 인터페이스 창
+
+
+```
+$("#checkMessage").text("사용할 수 있는 아이디입니다.");
+$("#myModal").modal("show");
+```
+
 
