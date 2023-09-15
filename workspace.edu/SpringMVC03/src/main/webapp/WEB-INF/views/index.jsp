@@ -16,6 +16,7 @@
   <jsp:include page="common/header.jsp"></jsp:include>
   <h3>홈페이지입니다</h3>
   <p style="color: red; font-size: 120px;">나가주세요</p>
+  <img alt="" src="https://westart.or.kr/wp-content/uploads/2016/05/AI7.png">
 </div>
 
 </body>
