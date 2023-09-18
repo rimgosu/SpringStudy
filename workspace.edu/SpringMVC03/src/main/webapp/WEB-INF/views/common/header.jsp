@@ -29,15 +29,33 @@
 
 					<li><a href="boardMain.do">게시판</a></li>
 				</ul>
-				<ul class="nav navbar-nav navbar-right">
-					<li class="dropdown"><a href="#" class="dropdown-toggle"
-						data-toggle="dropdown">접속하기<span class="caret"></span></a>
-						<ul class="dropdown-menu">
-							<li><a href="#"></span>로그인</a></li>
-							<li><a href="${contextPath }/joinForm.do"></span>회원가입</a></li>
+				
+				
+				<!-- 로그인 성공 시 안보여줄것 -->
+				<c:if test="${empty member}">
+					<ul class="nav navbar-nav navbar-right">
+						<li class="dropdown"><a href="#" class="dropdown-toggle"
+							data-toggle="dropdown">접속하기<span class="caret"></span></a>
+							<ul class="dropdown-menu">
+								<li><a href="#"></span>로그인</a></li>
+								<li><a href="${contextPath }/joinForm.do"></span>회원가입</a></li>
 
-						</ul></li>
-				</ul>
+							</ul></li>
+					</ul>
+				</c:if>
+				<c:if test="${not empty member}">
+					<ul class="nav navbar-nav navbar-right">
+						<li class="dropdown"><a href="#" class="dropdown-toggle"
+							data-toggle="dropdown">접속하기<span class="caret"></span></a>
+							<ul class="dropdown-menu">
+								<li><a href="#"></span>회원정보수정</a></li>
+								<li><a href="#"></span>프로필사진등록</a></li>
+								<li><a href="#"></span>로그아웃</a></li>
+
+							</ul></li>
+					</ul>
+				</c:if>
+
 			</div>
 		</div>
 	</nav>

@@ -16,6 +16,7 @@ select * from member;
 insert into member(memid, mempassword, memname, memage, memgender, mememail, memprofile)
 values('admin', '1234', '관리자', 20, '남자', 'admin@gmail.com', '');
 
+select DISTINCT memid from member where memid = 'admin';
 
 
 

@@ -22,16 +22,16 @@
 		<div class="panel panel-default">
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
-				<form action="">
-				
+				<form action="${contextPath }/join.do" method="post">
+
 					<!-- 이 친구가 넘어갈 예정임. -->
 					<input type="hidden" name="memPassword" id="memPassword" value="">
-				
+
 					<table style="text-align: center; border: 1px solid #dddddd"
 						class="table table-borded">
 						<tr>
 							<td style="width: 110px; vertical-align: middle;">아이디</td>
-							<td><input type="text" name="memID" id="memID"
+							<td><input type="text" name="memId" id="memId"
 								class="form-control" maxlength="20" placeholder="아이디를 입력하세요."></td>
 							<td style="width: 110px;"><button type="button"
 									onclick="registerCheck()" class="btn btn-sm btn-primary">중복확인</button></td>
@@ -83,18 +83,16 @@
 						<!-- 성별 끝 -->
 						<tr>
 							<td style="width: 110px; vertical-align: middle;">이메일</td>
-							<td colspan="2"><input type="email" name="memEmail"
+							<td colspan="2"><input required type="email" name="memEmail"
 								id="memEmail" class="form-control" maxlength="50"
 								placeholder="이메일을 입력하세요."></td>
 						</tr>
 						<tr>
-							<td colspan="3">
-								<span id="passMessage" style="color: red;"></span>
-							
-							<input type="submit"
-								class="btn btn-primary btn-sm pull-right" value="등록"> <input
-								type="reset" class="btn btn-warning btn-sm pull-right"
-								value="취소"></td>
+							<td colspan="3"><span id="passMessage" style="color: red;"></span>
+
+								<input type="submit" class="btn btn-primary btn-sm pull-right"
+								value="등록"> <input type="reset"
+								class="btn btn-warning btn-sm pull-right" value="취소"></td>
 						</tr>
 
 					</table>
@@ -133,22 +131,44 @@
 		</div>
 	</div>
 
+	<!-- 회원가입 실패시 띄워줄 Modal -->
+	<div class="modal fade" id="myMessage" role="dialog">
+		<div class="modal-dialog">
+
+			<!-- Modal content-->
+			<div id="messageType" class="modal-content">
+				<div class="modal-header panel-heading">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">${msgType }</h4>
+				</div>
+				<div class="modal-body">
+					<p>${msg }</p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
 
 	<script type="text/javascript">
       function registerCheck(){
-         var memID = $("#memID").val();
+         var memId = $("#memId").val();
+         console.log(memId);
          $.ajax({
             url:"${contextPath}/registerCheck.do",
             type:"get",
-            data:{"memID":memID},
+            data:{"memId":memId},
             success:function(data){
                // 중복여부 확인( data:1 -> 사용 가능, data:0 -> 사용 불가능)
                if (data == 1) {
             	   $("#checkMessage").text("사용할 수 있는 아이디입니다.");
-            	   $("#checkType").attr("class", "modal-content panel-success")
+            	   $("#checkType").attr("class", "modal-content panel-success");
                } else {
             	   $("#checkMessage").text("사용할 수 없는 아이디입니다.");
-            	   $("#checkType").attr("class", "modal-content panel-warning")
+            	   $("#checkType").attr("class", "modal-content panel-warning");
                }
                
                $("#myModal").modal("show");
@@ -174,10 +194,21 @@
     		  $("#passMessage").html("비밀번호 일치");
     		  $("#passMessage").attr("style", "color: green;");
     	  }
-
     	  
     	  
       }
+      
+      $(document).ready( function() {
+		if(${not empty msgType}){
+			if(${msgType eq "실패메세지"}){
+				$("#messageType").attr("class", "modal-content panel-warning");
+				
+			}
+			$("#myMessage").modal("show");
+		}
+	  });
+      
+      
    </script>
 
 </body>

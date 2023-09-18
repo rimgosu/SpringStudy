@@ -3,7 +3,12 @@
 <mapper namespace="kr.spring.mapper.MemberMapper">
 
 	<select id="registerCheck" parameterType="String" resultType="kr.spring.entity.Member">
-		select * from member where memid = #{memID}
+		select DISTINCT memid from member where memid = #{memId}
 	</select>
+	
+	<insert id="join" parameterType="kr.spring.entity.Member">
+		insert into member(memId, memPassword, memName, memAge, memGender, memEmail, memProfile)
+		values(#{memId}, #{memPassword}, #{memName}, #{memAge}, #{memGender}, #{memEmail}, #{memProfile})
+	</insert>
 
 </mapper>
