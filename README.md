@@ -388,3 +388,59 @@ $("#myModal").modal("show");
 ```
 
 
+
+### 9월 18일
+1. RedirectAttributes
+   - 리다이렉트 방식으로 이동할 때 보낼 데이터를 저장하는 객체
+   - 리다이렉트할 때 보내고 사라짐
+   - (↔ forward model)
+  
+```
+// 매개변수 받기
+public String join(RedirectAttributes rttr);
+
+// 사용하기
+rttr.addFlashAttribute("msgType", "실패메세지");
+rttr.addFlashAttribute("msg", "모든 내용을 채워주세요.");
+```
+```
+// 모델 사용 복습 (포워드 방식)
+public String boardlist(Model model)
+
+model.addAttribute("list", list);
+```
+
+2. $(document).ready()
+   - 모든 문서가 로드 되었을 때 쓰는 자바스크립트 함수
+```
+<script>
+$(document).ready(function() {})
+</script>
+```
+
+3. required
+   - input란이 공백이면 제출할 수 없음
+```
+<input required>
+```
+
+4. HttpSession
+   - 스프링의 세션사용
+  
+```
+public String join(HttpSession session)
+
+session.setAttribute("member", member);
+```
+
+#### 프로젝트 임포트
+5. 프로젝트 임포트하는법
+   1. 이름이 같은 프로젝트 Delete, 실제 경로로 들어가서 그 프로젝트 있는지 확인
+   2. 같은 경로로 .zip 파일 붙여넣기
+   3. import-import-next-archaive-.zip파일 선택
+   4. build path-JRE System Library - Workspace default JRE
+   5. Server Runtime 연동 안되어있으면, Add Library-Server Runtime-Finish
+   6. 서버 등록
+
+
+
