@@ -37,7 +37,7 @@
 						<li class="dropdown"><a href="#" class="dropdown-toggle"
 							data-toggle="dropdown">접속하기<span class="caret"></span></a>
 							<ul class="dropdown-menu">
-								<li><a href="#"></span>로그인</a></li>
+								<li><a href="${contextPath }/loginForm.do"></span>로그인</a></li>
 								<li><a href="${contextPath }/joinForm.do"></span>회원가입</a></li>
 
 							</ul></li>
@@ -50,7 +50,7 @@
 							<ul class="dropdown-menu">
 								<li><a href="#"></span>회원정보수정</a></li>
 								<li><a href="#"></span>프로필사진등록</a></li>
-								<li><a href="#"></span>로그아웃</a></li>
+								<li><a href="${contextPath}/logout.do"></span>로그아웃</a></li>
 
 							</ul></li>
 					</ul>

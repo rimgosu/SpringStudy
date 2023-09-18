@@ -2,6 +2,7 @@ package kr.spring.controller;
 
 import javax.servlet.http.HttpSession;
 
+import org.apache.ibatis.annotations.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -69,11 +70,50 @@ public class MemberController {
 			
 			return "redirect:/";
 		}
-			
-			
+	}
+	
+	
+	
+	@RequestMapping("/logout.do")
+	public String logout(HttpSession session) {
+		session.invalidate();
+		return "redirect:/";
+	}
+	
+	
+	@RequestMapping("/loginForm.do")
+	public String loginForm() {
+		return "member/loginForm";
+	}
+	
+	
+	@RequestMapping("/login.do")
+	public String login(HttpSession session, Member member, RedirectAttributes rttr) {
+		// 문제,
+		// mapper에 login이라는 매소드 이름으로 로그인 기능을 수행하시오
+		// 로그인 성공 시 => index.jsp 이동 후 로그인에 성공했습니다(modal)
+		// 로그인 실패 시 => login.jsp 이동 후 로그인에 실패했습니다(modal)
+		System.out.println("로그인 기능 수행");
+		System.out.println(member.toString());
 		
+		
+		String id = mapper.login(member);
+		if (id != null) {
+			System.out.println("로그인 성공");
+			rttr.addFlashAttribute("msgType", "로그인성공");
+			rttr.addFlashAttribute("msg", "로그인에 성공했습니다");
+			session.setAttribute("member", member);
+			return "redirect:/";
+		} else {
+			System.out.println("로그인 실패");
+			rttr.addFlashAttribute("msgType", "로그인실패");
+			rttr.addFlashAttribute("msg", "로그인에 실패했습니다");
+			return "redirect:/loginForm.do";
+		}
 		
 	}
+	
+	
 	
 	
 }

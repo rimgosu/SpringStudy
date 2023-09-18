@@ -10,5 +10,9 @@
 		insert into member(memId, memPassword, memName, memAge, memGender, memEmail, memProfile)
 		values(#{memId}, #{memPassword}, #{memName}, #{memAge}, #{memGender}, #{memEmail}, #{memProfile})
 	</insert>
+	
+	<select id="login" parameterType="kr.spring.entity.Member" resultType="String">
+		select DISTINCT memid from member where memid = #{memId} and memPassword = #{memPassword}
+	</select>
 
 </mapper>

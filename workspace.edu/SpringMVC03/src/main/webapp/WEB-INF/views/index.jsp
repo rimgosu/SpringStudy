@@ -53,6 +53,8 @@
 			if(${msgType eq "성공메시지"}){
 				$("#messageType").attr("class", "modal-content panel-success");
 				
+			} else if(${msgType eq "로그인성공"}){
+				$("#messageType").attr("class", "modal-content panel-success");
 			}
 			$("#myMessage").modal("show");
 		}
