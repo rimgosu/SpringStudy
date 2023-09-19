@@ -97,12 +97,13 @@ public class MemberController {
 		System.out.println(member.toString());
 		
 		
-		String id = mapper.login(member);
-		if (id != null) {
+		Member m = mapper.login(member);
+		if (m != null) {
 			System.out.println("로그인 성공");
 			rttr.addFlashAttribute("msgType", "로그인성공");
 			rttr.addFlashAttribute("msg", "로그인에 성공했습니다");
-			session.setAttribute("member", member);
+			session.setAttribute("member", m);
+			System.out.println(session.getAttribute("member"));
 			return "redirect:/";
 		} else {
 			System.out.println("로그인 실패");
@@ -113,6 +114,49 @@ public class MemberController {
 		
 	}
 	
+	
+	@RequestMapping("/updateForm.do")
+	public String updateForm() {
+		return "member/updateForm";
+	}
+	
+	
+	
+	@RequestMapping("/update.do")
+	public String update(Member member, RedirectAttributes rttr) {
+		System.out.println(member.toString());
+		
+		member.setMemProfile("");
+		
+		if (
+				member.getMemId() == null || member.getMemId().equals("") || 
+				member.getMemPassword() == null || member.getMemPassword().equals("") ||
+				member.getMemName() == null || member.getMemName().equals("") ||
+				member.getMemAge() == 0 ||
+				member.getMemEmail() == null || member.getMemEmail().equals("") 
+		) {
+			rttr.addFlashAttribute("msgType", "공란");
+			rttr.addFlashAttribute("msg", "모든 내용을 채워주세요.");
+			
+			return "redirect:/updateForm.do";
+		} else {
+			int cnt = mapper.update(member);
+			
+			if (cnt != 0) {
+				rttr.addFlashAttribute("msgType", "회원정보수정성공");
+				rttr.addFlashAttribute("msg", "회원정보 수정에 성공했습니다.");
+				
+				return "redirect:/";
+			} else {
+				rttr.addFlashAttribute("msgType", "정보수정실패");
+				rttr.addFlashAttribute("msg", "회원정보 수정에 실패했습니다.");
+				
+				return "redirect:/updateForm.do";
+			}
+			
+			
+		}
+	}
 	
 	
 	

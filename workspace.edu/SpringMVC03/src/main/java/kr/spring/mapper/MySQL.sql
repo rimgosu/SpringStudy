@@ -18,10 +18,11 @@ values('admin', '1234', '관리자', 20, '남자', 'admin@gmail.com', '');
 
 select DISTINCT memid from member where memid = 'admin';
 
+delete from member;
+commit;
 
-
-
-
+update member set mempassword='수정됨', memname='수정된이름', memage=100, memgender='여자', mememail='이메일@a.com'
+where memid = 'admin';
 
 
 

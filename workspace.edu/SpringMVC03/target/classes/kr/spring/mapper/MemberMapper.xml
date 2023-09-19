@@ -3,7 +3,7 @@
 <mapper namespace="kr.spring.mapper.MemberMapper">
 
 	<select id="registerCheck" parameterType="String" resultType="kr.spring.entity.Member">
-		select DISTINCT memid from member where memid = #{memId}
+		select memid from member where memid = #{memId}
 	</select>
 	
 	<insert id="join" parameterType="kr.spring.entity.Member">
@@ -11,8 +11,13 @@
 		values(#{memId}, #{memPassword}, #{memName}, #{memAge}, #{memGender}, #{memEmail}, #{memProfile})
 	</insert>
 	
-	<select id="login" parameterType="kr.spring.entity.Member" resultType="String">
-		select DISTINCT memid from member where memid = #{memId} and memPassword = #{memPassword}
+	<select id="login" parameterType="kr.spring.entity.Member" resultType="kr.spring.entity.Member">
+		select * from member where memid = #{memId} and memPassword = #{memPassword}
 	</select>
+	
+	<update id="update" parameterType="kr.spring.entity.Member">
+		update member set mempassword=#{memPassword}, memname=#{memName}, memage=#{memAge}, memgender=#{memGender}, mememail=#{memEmail}
+		where memid = #{memId}
+	</update>
 
 </mapper>
