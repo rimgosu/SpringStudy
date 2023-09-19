@@ -444,3 +444,37 @@ session.setAttribute("member", member);
 
 
 
+
+
+
+
+
+
+
+
+
+
+### 9월 19일
+1. webapp/resources
+   - 이미지 등 저장공간
+   - servlet-context.xml에 매핑되어있음.
+```
+<resources mapping="/resources/**" location="/resources/" />
+```
+  
+2. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
