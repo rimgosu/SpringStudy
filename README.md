@@ -462,7 +462,37 @@ session.setAttribute("member", member);
 <resources mapping="/resources/**" location="/resources/" />
 ```
   
-2. 
+2. bootstrap tabs
+> <https://www.w3schools.com/bootstrap/tryit.asp?filename=trybs_tabs_dynamic&stacked=h>
+
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/138d73df-57fe-4f06-b7bb-6c6db051c037)
+
+3. c:if - 라디오 버튼
+```
+<c:if test="${member.memGender eq '남자'}"></c:if>
+<c:if test="${member.memGender eq '여자'}"></c:if>
+```
+
+4. insert, update : cnt
+   - update, insert 성공적으로 수행했으면 cnt=1
+```
+int cnt = mapper.update(member);
+```
+
+5. 부트스트랩 아이콘
+   > <https://www.w3schools.com/bootstrap/bootstrap_ref_comp_glyphs.asp>
+
+```
+<span class="glyphicon glyphicon-log-in">로그인</span>
+<span class="glyphicon glyphicon-log-out">로그아웃</span>
+```
+
+
+
+
+
+
+
 
 
 
