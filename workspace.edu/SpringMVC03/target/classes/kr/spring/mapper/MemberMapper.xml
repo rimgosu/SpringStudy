@@ -19,5 +19,14 @@
 		update member set mempassword=#{memPassword}, memname=#{memName}, memage=#{memAge}, memgender=#{memGender}, mememail=#{memEmail}
 		where memid = #{memId}
 	</update>
+	
+	<update id="profileUpdate" parameterType="kr.spring.entity.Member">
+		update member set memProfile=#{memProfile}
+		where memid = #{memId}
+	</update>
+	
+	<select id="getMember" parameterType="String" resultType="kr.spring.entity.Member">
+		select * from member where memid = #{memId}
+	</select>
 
 </mapper>

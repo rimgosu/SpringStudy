@@ -40,8 +40,20 @@
 				</c:if>
 				<c:if test="${not empty member}">
 					<ul class="nav navbar-nav navbar-right">
+						<li>
+
+							<c:if test="${mvo.memProfile ne ''|| mvo.memProfile ne null}">
+								<img alt="" src="${contextPath}/resources/upload/${member.memProfile}" style="width: 45px; height: 45px;" class="img-circle">
+							</c:if>	
+							<c:if test="${mvo.memProfile eq ''|| mvo.memProfile eq null}">
+								<img alt="" src="${contextPath}/resources/images/default.png" style="width: 45px; height: 45px;" class="img-circle">
+							</c:if>					
+							
+							
+						
+						</li>
 						<li><a href="${contextPath}/updateForm.do"><span class="glyphicon glyphicon-pencil"> 회원정보수정</span></a></li>
-						<li><a href="#"><span class="glyphicon glyphicon-upload"> 프로필사진등록</span></a></li>
+						<li><a href="${contextPath}/imageForm.do"><span class="glyphicon glyphicon-upload"> 프로필사진등록</span></a></li>
 						<li><a href="${contextPath}/logout.do"> <span class="glyphicon glyphicon-log-out"> 로그아웃</span> </a></li>
 					</ul>
 				</c:if>
