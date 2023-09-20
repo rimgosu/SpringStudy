@@ -489,10 +489,88 @@ int cnt = mapper.update(member);
 
 
 
+### 9월 20일 (프로필 사진 등록)
+#### 파일업로드
+
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/24f2ed4f-79be-4a6b-9c7a-2f2236eeaee9)
 
 
+1. 파일업로드 jsp
+```
+<form action="${contextPath }/imageUpdate.do" method="post" enctype="multipart/form-data">
+	<input type="file" name="memProfile">
+</form>
+```
+
+2. 파일업로드 maven
+> https://mvnrepository.com/artifact/servlets.com/cos
+```
+<!-- https://mvnrepository.com/artifact/servlets.com/cos -->
+<dependency>
+    <groupId>servlets.com</groupId>
+    <artifactId>cos</artifactId>
+    <version>05Nov2002</version>
+</dependency>
+```
+
+3. 파일업로드 controller
+   - 파일업로드 객체는 파라미터로 받아올 수 없다.
+   - 받아올 수 있는 5가지
+     > 데이터, 저장경로, 최대 크기, 인코딩, 파일명 중복제거
+```
+public String imageUpdate(HttpServletRequest request) {
+	MultipartRequest multi = null;
+	String savePath = request.getRealPath("resources/upload");
+	int fileMaxSize = 10 * 1024 * 1024;
+	try {
+			multi = new MultipartRequest(request, savePath, fileMaxSize, "utf-8", new DefaultFileRenamePolicy());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	...
+}
+```	
+
+4. resource/upload 폴더 생성
+
+5. 보내면 다음 경로에 파일이 업로드 되어있는 것을 볼 수 있다 (서버 측 폴더)
+> C:\eGovFrame-4.0.0\workspace.edu\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\SpringMVC03\resources\upload
 
 
+6. 이전 프로 파일 삭제
+
+```
+String oldImg = mapper.getMember(memId).getMemProfile();
+File oldFile = new File(savePath + "/" + oldImg);
+if(oldFile.exists()) {
+			oldFile.delete();
+		}
+```
+
+
+7. 파일 무결성 검사
+```
+// 내가 방금 업로드한 파일 정보
+File file = multi.getFile("memProfile");
+
+if (file != null) {
+	// 확장자 가져오기
+	String ext = file.getName().substring(file.getName().lastIndexOf(".") + 1);
+	// PNG, png
+	ext = ext.toUpperCase();
+	
+	if (!(ext.equals("PNG") || ext.equals("GIF") || ext.equals("JPG") || ext.equals("JPEG"))) {
+		if(file.exists()) {
+			file.delete();
+			rttr.addFlashAttribute("msgType", "실패메세지");
+			rttr.addFlashAttribute("msg", "이미지 파일만 가능합니다.(png, jpg, gif)");
+			
+			return "redirect:/imageForm.do";
+		}
+	}
+	
+}
+```
 
 
 
