@@ -576,6 +576,7 @@ if (file != null) {
 
 ### 9월 21일 
 > SpringMVC03 끝
+> SpringMVC04
 
 1. 조건문 안에서 el 식을 쓰고 싶다면 문자열로 감싸주어야 한다
 ```
@@ -585,14 +586,79 @@ if (file != null) {
 </script>
 ```
 
+### .xml → .java
+
+1. web.xml 안쓰겠습니다 선언
+> pom.xml
+```
+<build>
+	<plugins>
+		<!-- web.xml 안쓰겠습니다 선언. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>3.2.0</version>
+				<configuration>
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
+
+			...
+```
+
+
+2. .xml 삭제
+
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/0baff975-1372-4a71-97f2-f0ff1b410e28)
 
 
 
+3. Config.java 생성
+> WebConfig.java
+> ServletConfig.java
+> RootConfig.java
+   - AbstractAnnotationConfigDispatcherServletInitializer (추상 클래스) 상속 
+   - add unimplement method (추상 클래스를 상속받았으므로 필수 함술르 만들어줘야함)
+
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/256e3c5d-269b-4889-8104-c7db9c56e6f0)
 
 
+#### WebConfig.java
+> [web.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/web.xml)
+> [WebConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/WebConfig.java)
 
 
+#### RootConfig.java
+> [root-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/root-context.xml)
+> [RootConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/RootConfig.java)
+
+#### ServletConfig.java
+> [servlet-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml)
+> [ServletConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/ServletConfig.java)
+- @ComponentScan(basePackages = {"kr.spring.controller", "kr.example.add"}) : 컨트롤러 여러 개 추가할 수 있다.
 
 
+#### persistence-mysql.properties
+> src/main/resources/persistence-mysql.properties
+- db 연결을 위한 설정파일
 
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/3eaa804d-9c15-402a-a88c-36ead920fd44)
 
+```
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://localhost:3306/com
+jdbc.user=com
+jdbc.password=com01
+```
+
+> RootConfig.java (연결)
+
+```
+@PropertySource({"classpath:persistence-mysql.properties"})
+public class RootConfig {
+	@Autowired
+	Environment env;
+
+	...
+}
+```
