@@ -574,6 +574,16 @@ if (file != null) {
 
 
 
+### 9월 21일 
+> SpringMVC03 끝
+
+1. 조건문 안에서 el 식을 쓰고 싶다면 문자열로 감싸주어야 한다
+```
+<script>
+	if("${mvo.memId}" == obj.memId) {...}
+	console.log("member.memId : "+"${member.memId}");
+</script>
+```
 
 
 
