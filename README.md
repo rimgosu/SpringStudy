@@ -614,8 +614,8 @@ if (file != null) {
 
 
 3. Config.java 생성
-> WebConfig.java
-> ServletConfig.java
+> WebConfig.java<br>
+> ServletConfig.java<br>
 > RootConfig.java
    - AbstractAnnotationConfigDispatcherServletInitializer (추상 클래스) 상속 
    - add unimplement method (추상 클래스를 상속받았으므로 필수 함술르 만들어줘야함)
@@ -625,15 +625,18 @@ if (file != null) {
 
 #### WebConfig.java
 > [web.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/web.xml)
+> 
 > [WebConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/WebConfig.java)
 
 
 #### RootConfig.java
 > [root-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/root-context.xml)
+> 
 > [RootConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/RootConfig.java)
 
 #### ServletConfig.java
 > [servlet-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml)
+> 
 > [ServletConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/ServletConfig.java)
 - @ComponentScan(basePackages = {"kr.spring.controller", "kr.example.add"}) : 컨트롤러 여러 개 추가할 수 있다.
 
