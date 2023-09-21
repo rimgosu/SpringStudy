@@ -3,8 +3,8 @@
 <mapper namespace="kr.spring.mapper.BoardMapper">
 
 <insert id="boardInsert" parameterType="kr.spring.entity.Board">
-	INSERT INTO BOARD (TITLE, CONTENT, WRITER)
-	VALUES(#{title}, #{content}, #{writer})
+	INSERT INTO BOARD (TITLE, CONTENT, WRITER, memid)
+	VALUES(#{title}, #{content}, #{writer}, #{memId})
 </insert>
 
 <select id="boardContent" parameterType="kr.spring.entity.Board" resultType="kr.spring.entity.Board">

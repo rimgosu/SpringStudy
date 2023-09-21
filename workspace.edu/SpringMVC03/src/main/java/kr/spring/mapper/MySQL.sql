@@ -1,3 +1,16 @@
+drop table board;
+CREATE TABLE BOARD(
+	IDX		INT				NOT NULL	AUTO_INCREMENT,
+	memid	varchar(20)		not null,
+	TITLE	VARCHAR(100)	NOT NULL,
+	CONTENT	VARCHAR(2000)	NOT NULL,
+	WRITER	VARCHAR(30)		NOT NULL,
+	INDATE	DATETIME		DEFAULT NOW(),
+	COUNT	INT				DEFAULT 0,
+	PRIMARY KEY(IDX)
+);
+select * from board;
+
 -- 회원 테이블
 create table member(
 	memidx		int				auto_increment,
