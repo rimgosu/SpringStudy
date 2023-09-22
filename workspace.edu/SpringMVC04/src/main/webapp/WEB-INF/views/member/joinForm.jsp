@@ -23,6 +23,9 @@
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
 				<form action="${contextPath }/join.do" method="post">
+				
+					<!-- 보안 토큰 설정 -->
+					<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 
 					<!-- 이 친구가 넘어갈 예정임. -->
 					<input type="hidden" name="memPassword" id="memPassword" value="">

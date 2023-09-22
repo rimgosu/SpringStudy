@@ -23,6 +23,10 @@
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
 				<form action="${contextPath }/login.do" method="post">
+				
+					<!-- 보안 토큰 설정 -->
+					<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+				
 
 					<table style="text-align: center; border: 1px solid #dddddd"
 						class="table table-borded">

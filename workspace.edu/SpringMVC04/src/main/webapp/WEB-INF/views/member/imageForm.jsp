@@ -22,7 +22,7 @@
 		<div class="panel panel-default">
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
-				<form action="${contextPath }/imageUpdate.do" method="post" enctype="multipart/form-data">
+				<form action="${contextPath }/imageUpdate.do?${_csrf.parameterName}=${_csrf.token}" method="post" enctype="multipart/form-data">
 
 					<table style="text-align: center; border: 1px solid #dddddd"
 						class="table table-borded">

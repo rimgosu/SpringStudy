@@ -24,6 +24,10 @@
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
 				<form action="${contextPath }/update.do" method="post">
+				
+					<!-- 보안 토큰 설정 -->
+					<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+				
 
 					<input required type="hidden" name="memProfile" id="memProfile"
 						value="${member.memProfile}">

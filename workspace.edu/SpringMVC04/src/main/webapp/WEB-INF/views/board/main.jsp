@@ -108,6 +108,12 @@
 	</div>
 
 	<script type="text/javascript">
+		// ajax에서도 post 방식으로 데이터를 보내기 위해선 csrf token 값을 전달해야한다
+		// token의 이름과 값 가져오기
+		var csrfHeaderName = "${_csrf.headerName}";
+		var csrfTokenValue = "${_csrf.token}";
+		
+		
 		// 처음 실행될 때 자동 실행 => 생성자 느낌
 		// html 다 로딩되고 아래 코드 실행
 		$(document).ready(function() {
@@ -213,6 +219,9 @@
 				url : "board/new",
 				type : "post",
 				data : fData,
+				beforeSend : function(xhr){
+					xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
+				},
 				success : loadList,
 				error : function() {
 					alert("error");
@@ -252,6 +261,9 @@
 					url : "board/count",
 					type : "put",
 					contentType : "application/json",
+					beforeSend : function(xhr){
+						xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
+					},
 					data : JSON.stringify({
 						"idx" : idx
 					}),
@@ -271,6 +283,9 @@
 				type : "delete",
 				data : {
 					"idx" : idx
+				},
+				beforeSend : function(xhr){
+					xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
 				},
 				success : loadList,
 				error : function() {
@@ -315,6 +330,9 @@
 				url : "board/update",
 				type : "put",
 				contentType : "application/json;charset=utf-8",
+				beforeSend : function(xhr){
+					xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
+				},
 				data : JSON.stringify({
 					"idx" : idx,
 					"title" : title,

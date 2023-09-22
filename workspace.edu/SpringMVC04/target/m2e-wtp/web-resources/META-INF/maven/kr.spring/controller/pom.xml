@@ -11,6 +11,10 @@
 	<properties>
 		<java-version>1.6</java-version>
 		<org.springframework-version>5.0.2.RELEASE</org.springframework-version>
+
+		<!-- Spring Security를 하기위한 버전 추가 -->
+		<org.springsecurity-version>5.0.2.RELEASE</org.springsecurity-version>
+
 		<org.aspectj-version>1.6.10</org.aspectj-version>
 		<org.slf4j-version>1.6.6</org.slf4j-version>
 	</properties>
@@ -175,6 +179,27 @@
 		</dependency>
 
 
+		<!-- Spring Security API 추가 -->
+		<dependency>
+			<!-- web에서 Srpnig Security를 사용하기 위한 api -->
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-web</artifactId>
+			<version>${org.springsecurity-version}</version>
+		</dependency>
+		<dependency>
+			<!-- Spring Security를 사용하기 위한 API -->
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-config</artifactId>
+			<version>${org.springsecurity-version}</version>
+		</dependency>
+		<dependency>
+			<!-- Spring Security를 편리하게 사용하기위한 태그라이브러리 사용 API -->
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-taglibs</artifactId>
+			<version>${org.springsecurity-version}</version>
+		</dependency>
+
+
 
 
 
@@ -182,7 +207,7 @@
 	</dependencies>
 	<build>
 		<plugins>
-		
+
 			<!-- web.xml 안쓰겠습니다 선언. -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -192,7 +217,7 @@
 					<failOnMissingWebXml>false</failOnMissingWebXml>
 				</configuration>
 			</plugin>
-		
+
 			<plugin>
 				<artifactId>maven-eclipse-plugin</artifactId>
 				<version>2.9</version>
