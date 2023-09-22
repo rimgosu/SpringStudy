@@ -714,17 +714,36 @@ import org.springframework.security.web.context.AbstractSecurityWebApplicationIn
 public class SecurityInitializer extends AbstractSecurityWebApplicationInitializer{}
 ```
 
+3. WebSecurityConfigurerAdapter
+>  kr.spring.config/SecurityConfig
 
 
-
-### CSRF
+4. CSRF
 > Cross-Site Request Forgery. 사이트 간 요청 위조의 줄임말.
+- CSRF 설정을 하지 않으면 로그인, 회원가입 등 403 에러가 뜬다.
 - 해결 방안 : 토큰
 
 > joinForm.jsp
 ```
 <!-- 보안 토큰 설정 -->
 <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+```
+
+```
+<input type="hidden" name="_csrf" value="04872be9-ce98-4b5b-a42c-2070b798c971">
+```
+
+4-1. CSRF UTF-8 인코딩
+> SecurityConfig.java
+- 보안쪽 클래스를 지나면서 인코딩이 깨진다. 따라서 인코딩을 Security쪽에 따로 해줘야
+```
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+	// 요청에 대한 보안 설정하는 곳
+	CharacterEncodingFilter filter = new CharacterEncodingFilter();
+	filter.setEncoding("utf-8");
+	filter.setForceEncoding(true);
+}
 ```
 
  
