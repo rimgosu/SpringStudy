@@ -33,7 +33,7 @@
 
 
 
-
+---
 
 
 
@@ -57,7 +57,7 @@
 
 
 
-
+---
   
 ### 세부 세팅 (라이브러리)
 1. 부트스트랩 : 디자인 탬플릿 적용
@@ -86,7 +86,7 @@
 
 
 
-
+---
 
 ### mysql 세팅
 1. C++ 다운로드
@@ -100,7 +100,7 @@
 
 
 
-
+---
 
 ## Lecture Note
 
@@ -122,7 +122,7 @@
 
 
 
-
+---
 
 ### 9월 6일
 1. web.xml => 스프링 정보 총괄, 톰캣이 읽을 때 가장 먼저 읽는 파일
@@ -154,7 +154,7 @@ public interface BoardMapper {
 
 
 
-
+---
 
 
 ### 9월 7일
@@ -195,7 +195,7 @@ public interface BoardMapper {
 
 
 
-
+---
 
 
 ### 9월 11일 (PathVariable, 비동기 통신)
@@ -260,6 +260,8 @@ function makeView(data) {
 </script>
 ```
 
+---
+
 ### 9월 12일 (비동기 통신-2)
 
 1. jquery 반복문 활용
@@ -285,7 +287,7 @@ $.each(data, function(index, obj) {
    * 1) {"키" : 값, "키" : 값}
    * 2) serialData = "title=" + title + "&content=" + content;
   
-
+---
 
 ### 9월 13일 (REST-1)
 
@@ -331,7 +333,7 @@ $.ajax({url : "board/all"})
    5. @PutMapping : update 
 
 
-
+---
 
 ### 9월 14일 (REST-2)
 
@@ -370,7 +372,7 @@ public void boardUpdate(@RequestBody Board board) {
 <c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
 ```
 
-
+---
 
 ### 9월 15일
 1. modal :
@@ -383,7 +385,7 @@ $("#checkMessage").text("사용할 수 있는 아이디입니다.");
 $("#myModal").modal("show");
 ```
 
-
+---
 
 ### 9월 18일
 1. RedirectAttributes
@@ -429,6 +431,8 @@ public String join(HttpSession session)
 session.setAttribute("member", member);
 ```
 
+---
+
 #### 프로젝트 임포트
 5. 프로젝트 임포트하는법
    1. 이름이 같은 프로젝트 Delete, 실제 경로로 들어가서 그 프로젝트 있는지 확인
@@ -448,7 +452,7 @@ session.setAttribute("member", member);
 
 
 
-
+---
 
 ### 9월 19일
 1. webapp/resources
@@ -483,7 +487,7 @@ int cnt = mapper.update(member);
 <span class="glyphicon glyphicon-log-out">로그아웃</span>
 ```
 
-
+---
 
 ### 9월 20일 (프로필 사진 등록)
 #### 파일업로드
@@ -568,7 +572,7 @@ if (file != null) {
 }
 ```
 
-
+---
 
 ### 9월 21일 
 > SpringMVC03 끝
@@ -661,9 +665,11 @@ public class RootConfig {
 
 
 
-
+---
 
 ### 9월 22일 (Security)
+> SpringMVC04 <br>
+> SpringMVO05 <br>
 #### Spring Security Settings
 1. security 버전 추가 & org.springframework.security 추
 > pom.xml
@@ -772,6 +778,9 @@ protected void configure(HttpSecurity http) throws Exception {
 
 
 
- 
+---
+
+1. 권한테이블
+
 
 
