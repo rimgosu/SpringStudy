@@ -44,18 +44,14 @@
 ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/3de06ba0-2e9c-4ea3-8feb-567ce1db1ce8)
 ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/a4c043ea-c2cc-4a22-a80c-0dd33cf236ed)
 
-1. MYBATIS 개요
-   - https://mybatis.org/mybatis-3/getting-started.html
-   - JDBC 쉽게 API로!
-   - hikariCP, JDBC, SPRING JDBC, MYBATIS, MYBATIS-SPRING 연결.
-
-2. mybatis : https://mvnrepository.com/artifact/org.mybatis/mybatis/3.4.6
-3. hikariCP : https://mvnrepository.com/artifact/com.zaxxer/HikariCP/3.4.1
-4. MySQL Connector Java : https://mvnrepository.com/artifact/mysql/mysql-connector-java/5.1.42
-5. Spring JDBC (스프링 버전과 맞춰줘야함) : https://mvnrepository.com/artifact/org.springframework/spring-jdbc/5.0.2.RELEASE
-6. mybatis spring : https://mvnrepository.com/artifact/org.mybatis/mybatis-spring/1.3.2
-7. 루트컨텍스트 설정.txt : => root-context.xml 붙여 넣기
-      
+| 라이브러리/설정          | Maven Repository 링크                                                       | 설명                                   |
+|------------------------|----------------------------------------------------------------------------|----------------------------------------|
+| MyBatis                | [MyBatis 3.4.6](https://mvnrepository.com/artifact/org.mybatis/mybatis/3.4.6) | SQL 매핑 프레임워크                    |
+| HikariCP               | [HikariCP 3.4.1](https://mvnrepository.com/artifact/com.zaxxer/HikariCP/3.4.1) | 고성능 JDBC 연결 풀                    |
+| MySQL Connector Java   | [MySQL 5.1.42](https://mvnrepository.com/artifact/mysql/mysql-connector-java/5.1.42) | MySQL 데이터베이스 드라이버            |
+| Spring JDBC            | [Spring JDBC 5.0.2.RELEASE](https://mvnrepository.com/artifact/org.springframework/spring-jdbc/5.0.2.RELEASE) | 스프링의 JDBC 통합 지원                |
+| MyBatis Spring         | [MyBatis-Spring 1.3.2](https://mvnrepository.com/artifact/org.mybatis/mybatis-spring/1.3.2) | MyBatis와 Spring 통합                  |
+| 루트 컨텍스트 설정.txt | [루트컨텍스트설정.txt](https://github.com/rimgosu/SpringStudy/blob/master/%EB%A3%A8%ED%8A%B8%EC%BB%A8%ED%85%8D%EC%8A%A4%ED%8A%B8%20%EC%84%A4%EC%A0%95.txt)                                                                        | `root-context.xml`에 붙여넣을 설정     |
 
 
 
@@ -723,13 +719,41 @@ public class SecurityInitializer extends AbstractSecurityWebApplicationInitializ
 - CSRF 설정을 하지 않으면 로그인, 회원가입 등 403 에러가 뜬다.
 - 해결 방안 : 토큰
 
-> joinForm.jsp
+> joinForm.jsp<br>
+> loginForm.jsp<br>
+> updateForm.jsp<br>
+
 ```
 <!-- 보안 토큰 설정 -->
 <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 ```
 
+> imageForm.jsp
 ```
+<!-- 보안 토큰 설정 (get 방식으로 내보내기) -->
+<form action="${contextPath }/imageUpdate.do?${_csrf.parameterName}=${_csrf.token}" method="post" enctype="multipart/form-data">
+```
+
+> main.jsp (javascript 비동기 통신)
+
+```
+<script>
+	var csrfHeaderName = "${_csrf.headerName}";
+	var csrfTokenValue = "${_csrf.token}";
+	$.ajax({
+		...
+		beforeSend : function(xhr){
+			xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
+		},
+		...
+	});
+</script>	
+```
+
+
+> 웹페이지
+```
+<!-- 다음과 같이 자동으로 csrf 토큰 값이 들어오는 걸 볼 수 있다. -->
 <input type="hidden" name="_csrf" value="04872be9-ce98-4b5b-a42c-2070b798c971">
 ```
 
@@ -745,6 +769,8 @@ protected void configure(HttpSecurity http) throws Exception {
 	filter.setForceEncoding(true);
 }
 ```
+
+
 
  
 
