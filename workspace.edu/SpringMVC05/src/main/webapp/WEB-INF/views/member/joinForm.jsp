@@ -90,6 +90,17 @@
 								id="memEmail" class="form-control" maxlength="50"
 								placeholder="이메일을 입력하세요."></td>
 						</tr>
+						
+						<!-- 권한 체크박스 -->
+						<tr>
+							<td style="width: 110px; vertical-align: middle;">이메일</td>
+							<td colspan="2">
+								<input type="checkbox" name="authList[0].auth" value="ROLE_UCER"> ROLE_USER
+								<input type="checkbox" name="authList[1].auth" value="ROLE_UCER"> ROLE_MANAGER
+								<input type="checkbox" name="authList[2].auth" value="ROLE_UCER"> ROLE_ADMIN
+							</td>
+						</tr>
+						
 						<tr>
 							<td colspan="3"><span id="passMessage" style="color: red;"></span>
 

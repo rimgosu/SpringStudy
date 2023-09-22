@@ -12,19 +12,33 @@ CREATE TABLE BOARD(
 select * from board;
 
 -- 회원 테이블
+drop table auth;
+drop table member;
 create table member(
-	memidx		int				auto_increment,
+	memidx		int				not null,
 	memid		varchar(20)		not null,
-	mempassword	varchar(20)		not null,
+	mempassword	varchar(68)		not null,
 	memname		varchar(20)		not null,
 	memage		int,
 	memgender	varchar(20),
 	mememail	varchar(50),
 	memprofile	varchar(50), -- 사진 경로 저장할 컬럼
-	primary key(memidx)
+	primary key(memid)
+);
+-- 권한테이블
+-- Sprign Security에서는 member 테이블 안에 반드시 권한이 있어야 한다
+-- 사용하지 않더라도 넣어주자
+create table auth(
+	no 			int				not null	auto_increment,
+	memid		varchar(50)		not null,
+	auth		varchar(50)		not null,
+	primary key(no),	
+	constraint fk_member_auth foreign key(memid) references member(memid)
 );
 
+
 select * from member;
+select * from auth;
 
 insert into member(memid, mempassword, memname, memage, memgender, mememail, memprofile)
 values('admin', '1234', '관리자', 20, '남자', 'admin@gmail.com', '');

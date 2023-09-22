@@ -7,8 +7,13 @@
 	</select>
 	
 	<insert id="join" parameterType="kr.spring.entity.Member">
-		insert into member(memId, memPassword, memName, memAge, memGender, memEmail, memProfile)
-		values(#{memId}, #{memPassword}, #{memName}, #{memAge}, #{memGender}, #{memEmail}, #{memProfile})
+	  INSERT INTO MEMBER(MEMIDX, MEMID, MEMPASSWORD, MEMNAME, MEMAGE, MEMGENDER,
+      MEMEMAIL, MEMPROFILE)
+      VALUES(
+      (SELECT IFNULL(MAX(MEMIDX) + 1, 1) FROM MEMBER MEM),
+      #{memId}, #{memPassword}, #{memName}, #{memAge},
+      #{memGender}, #{memEmail}, #{memProfile}
+      )
 	</insert>
 	
 	<select id="login" parameterType="kr.spring.entity.Member" resultType="kr.spring.entity.Member">
