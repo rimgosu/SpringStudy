@@ -586,7 +586,7 @@ if (file != null) {
 </script>
 ```
 
-### .xml → .java
+## .xml → .java
 
 1. web.xml 안쓰겠습니다 선언
 > pom.xml
@@ -623,22 +623,18 @@ if (file != null) {
 ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/256e3c5d-269b-4889-8104-c7db9c56e6f0)
 
 
-#### WebConfig.java
-> [web.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/web.xml)
-> 
-> [WebConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/WebConfig.java)
+
+| 설정 유형             | XML 설정 파일                                                                                      | Java 설정 파일                                                                                                   | 설명                                              |
+|---------------------|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| 웹 설정              | [web.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/web.xml)                   | [WebConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/WebConfig.java)                   | 웹 컨텍스트 관련 설정. 서블릿 매핑과 컨텍스트 파라미터를 포함합니다.       |
+| 루트 설정            | [root-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/root-context.xml) | [RootConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/RootConfig.java)                   | 애플리케이션 컨텍스트 설정. 데이터 소스, 서비스, 레포지토리 등을 포함합니다. |
+| 서블릿 설정          | [servlet-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml) | [ServletConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/ServletConfig.java)             | 서블릿 컨텍스트 관련 설정. 뷰 리졸버와 컨트롤러를 포함합니다. `@ComponentScan`을 사용하여 여러 컨트롤러를 지정할 수 있습니다. |
 
 
-#### RootConfig.java
-> [root-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/root-context.xml)
-> 
-> [RootConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/RootConfig.java)
 
-#### ServletConfig.java
-> [servlet-context.xml](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC03/src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml)
-> 
-> [ServletConfig.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC04/src/main/java/kr/spring/config/ServletConfig.java)
-- @ComponentScan(basePackages = {"kr.spring.controller", "kr.example.add"}) : 컨트롤러 여러 개 추가할 수 있다.
+
+
+
 
 
 #### persistence-mysql.properties
@@ -665,3 +661,72 @@ public class RootConfig {
 	...
 }
 ```
+
+
+
+
+
+
+### 9월 22일 (Security)
+## Spring Security Settings
+1. security 버전 추가 & org.springframework.security 추
+> pom.xml
+```
+<!-- Spring Security를 하기위한 버전 추가-->
+<org.springsecurity-version>5.0.2.RELEASE</org.springsecurity-version>
+```
+
+```
+<!-- Spring Security API 추가 -->
+<dependency>
+	<!-- web에서 Srpnig Security를 사용하기 위한 api -->
+	<groupId>org.springframework.security</groupId>
+	<artifactId>spring-security-web</artifactId>
+	<version>${org.springsecurity-version}</version>
+</dependency>
+<dependency>
+	<!-- Spring Security를 사용하기 위한 API -->
+	<groupId>org.springframework.security</groupId>
+	<artifactId>spring-security-config</artifactId>
+	<version>${org.springsecurity-version}</version>
+</dependency>
+<dependency>
+	<!-- Spring Security를 편리하게 사용하기위한 태그라이브러리 사용 API -->
+	<groupId>org.springframework.security</groupId>
+	<artifactId>spring-security-taglibs</artifactId>
+	<version>${org.springsecurity-version}</version>
+</dependency>
+```
+
+- 위 두 문장을 추가하면 스프링 버전이 업데이트 되므로 <strong>alt+f5</strong> - Force update 체크해서 업데이트 해줘야함.
+
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/c38f141e-0eb7-4e9d-b3dc-aaf661447ca2)
+
+
+
+2. AbstractSecurityWebApplicationInitializer
+> kr.spring.config/SecurityInitializer.java
+- 자동으로 보안 관련 객체들이 생성되어 스프링 컨테이너(메모리 공간)으로 올라간다
+
+```
+import org.springframework.security.web.context.AbstractSecurityWebApplicationInitializer;
+
+public class SecurityInitializer extends AbstractSecurityWebApplicationInitializer{}
+```
+
+
+
+
+### CSRF
+> Cross-Site Request Forgery. 사이트 간 요청 위조의 줄임말.
+- 해결 방안 : 토큰
+
+> joinForm.jsp
+```
+<!-- 보안 토큰 설정 -->
+<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+```
+
+ 
+
+
