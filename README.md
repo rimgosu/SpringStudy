@@ -779,8 +779,59 @@ protected void configure(HttpSecurity http) throws Exception {
 
 
 ---
+#### 비밀번호 암호화
 
-1. 권한테이블
+1. Auth 테이블 생성
+```
+create table auth(
+	no 			int		not null	auto_increment,
+	memid		varchar(50)		not null,
+	auth		varchar(50)		not null,
+	primary key(no),	
+	constraint fk_member_auth foreign key(memid) references member(memid)
+);
+```
+2. [Auth 엔티티 생성](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC05/src/main/java/kr/spring/entity/Auth.java)
+
+3. [Member엔티티에서 Auth 엔티티 가져오기](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC05/src/main/java/kr/spring/entity/Member.java)
+
+4. form 태그에 권한 엔티티 추가 및 무결성검사
+5. bean으로 패스워드 인코더 등록
+
+> SecurityConfig
+```
+@Bean // password 인코딩 기능을 메모리에 올리기
+public PasswordEncoder passwordEncoder() {
+	return new BCryptPasswordEncoder();
+}
+```
+```
+//사용
+@Autowired
+private PasswordEncoder pwEncoder;
+// 비밀번호 암호화하기
+String encyPw = pwEncoder.encode(member.getMemPassword());
+System.out.println(encyPw);
+```
+> 확인해보면 '$2a$10$eE3kIhtbnLAELjZECaucgenZSMJFHbO1AZuIuOL3enjg4keEqyJke'와 같이 암호화 된 것을 볼 수 있다.
+
+6. DB 테이블이 변경되었으므로 ID="JOIN" SQL문 수정
+```
+<insert id="join" parameterType="kr.spring.entity.Member">
+  INSERT INTO MEMBER(MEMIDX, MEMID, MEMPASSWORD, MEMNAME, MEMAGE, MEMGENDER,
+MEMEMAIL, MEMPROFILE)
+VALUES(
+(SELECT IFNULL(MAX(MEMIDX) + 1, 1) FROM MEMBER MEM),
+#{memID}, #{memPassword}, #{memName}, #{memAge},
+#{memGender}, #{memEmail}, #{memProfile}
+)
+</insert>
+```
+
+
+
+
+
 
 
 
