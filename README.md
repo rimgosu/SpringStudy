@@ -582,7 +582,7 @@ if (file != null) {
 </script>
 ```
 
-### .xml → .java
+#### .xml → .java
 
 1. web.xml 안쓰겠습니다 선언
 > pom.xml
@@ -633,7 +633,7 @@ if (file != null) {
 
 
 
-### persistence-mysql.properties
+#### persistence-mysql.properties
 > src/main/resources/persistence-mysql.properties
 - db 연결을 위한 설정파일
 
@@ -664,7 +664,7 @@ public class RootConfig {
 
 
 ### 9월 22일 (Security)
-### Spring Security Settings
+#### Spring Security Settings
 1. security 버전 추가 & org.springframework.security 추
 > pom.xml
 ```
