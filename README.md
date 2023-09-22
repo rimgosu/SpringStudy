@@ -717,7 +717,7 @@ public class SecurityInitializer extends AbstractSecurityWebApplicationInitializ
 4. CSRF
 > Cross-Site Request Forgery. 사이트 간 요청 위조의 줄임말.
 - CSRF 설정을 하지 않으면 로그인, 회원가입 등 403 에러가 뜬다.
-- 해결 방안 : 토큰
+- 해결 방안 : 토큰을 줘서 확인함
 
 > joinForm.jsp<br>
 > loginForm.jsp<br>
