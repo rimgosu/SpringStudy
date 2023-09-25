@@ -38,7 +38,22 @@ create table auth(
 
 
 select * from member;
+delete from member;
 select * from auth;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 insert into member(memid, mempassword, memname, memage, memgender, mememail, memprofile)
 values('admin', '1234', '관리자', 20, '남자', 'admin@gmail.com', '');

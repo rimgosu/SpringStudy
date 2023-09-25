@@ -2,6 +2,7 @@ package kr.spring.controller;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -19,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.oreilly.servlet.MultipartRequest;
 import com.oreilly.servlet.multipart.DefaultFileRenamePolicy;
 
+import kr.spring.entity.Auth;
 import kr.spring.entity.Member;
 import kr.spring.mapper.MemberMapper;
 
@@ -69,6 +71,20 @@ public class MemberController {
 			member.setMemPassword(encyPw);
 
 			mapper.join(member);
+			
+			// 추가 : 권한 테이블에 회원의 권한을 저장하기
+			List<Auth> list = member.getAuthList();
+			for(Auth auth : list) {
+				if(auth.getAuth() != null) {
+					// 권한 값이 있을 때만 권한테이블에 값 넣기
+					Auth saveVO = new Auth();
+					saveVO.setMemId(member.getMemId());
+					saveVO.setAuth(auth.getAuth());
+					// 권한 저장
+					mapper.authInsert(saveVO);
+					
+				}
+			}
 
 			rttr.addFlashAttribute("msgType", "성공메시지");
 			rttr.addFlashAttribute("msg", "회원가입 성공!");

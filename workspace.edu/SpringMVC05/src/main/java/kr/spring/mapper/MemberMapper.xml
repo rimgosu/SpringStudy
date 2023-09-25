@@ -33,5 +33,11 @@
 	<select id="getMember" parameterType="String" resultType="kr.spring.entity.Member">
 		select * from member where memid = #{memId}
 	</select>
+	
+	<select id="authInsert" parameterType="kr.spring.entity.Auth">
+		insert into AUTH(MEMID, AUTH) values(#{memId}, #{auth})
+	</select>
+	
+	
 
 </mapper>
