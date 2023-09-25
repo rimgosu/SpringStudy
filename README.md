@@ -671,7 +671,7 @@ public class RootConfig {
 > SpringMVC04 <br>
 > SpringMVO05 <br>
 #### Spring Security Settings
-1. security 버전 추가 & org.springframework.security 추
+1. security 버전 추가 & org.springframework.security 추가.
 > pom.xml
 ```
 <!-- Spring Security를 하기위한 버전 추가-->
@@ -827,6 +827,56 @@ VALUES(
 )
 </insert>
 ```
+
+
+
+### 9월 25일
+
+a. `<resultMap>` 
+	1. result를 추가해주기 위한 도구
+	2. 배열 받아오기 위해선 `<collection />`
+
+```
+<resultMap type="kr.spring.entity.Auth" id="authMap">
+	<id property="no" column="no"/>
+	<result property="memId" column="memId"/>
+	<result property="auth" column="auth"/>
+</resultMap>
+
+<resultMap type="kr.spring.entity.Member" id="memberMap">
+	<id property="memIdx" column="memIdx"/>
+	<result property="memId" column="memId"/>
+	<result property="memPassword" column="memPassword"/>
+	<result property="memName" column="memName"/>
+	<result property="memAge" column="memAge"/>
+	<result property="memGender" column="memGender"/>
+	<result property="memEmail" column="memEmail"/>
+	<result property="memProfile" column="memProfile"/>
+	<collection property="authList" resultMap="authMap"/>
+</resultMap>
+```
+
+```
+<select id="getMember" parameterType="String" resultMap="memberMap">
+	SELECT * 
+	  FROM MEMBER mem LEFT OUTER JOIN AUTH auth
+		ON mem.MEMID = auth.MEMID
+	 WHERE mem.MEMID = #{memId}
+</select>
+```
+
+b. 비밀번호 일치여부 체크
+   1. `pwEncoder.matches()`
+   2. true, false 반환
+```
+boolean pwCheck = pwEncoder.matches(member.getMemPassword(), m.getMemPassword());
+```
+
+
+
+
+
+
 
 
 
