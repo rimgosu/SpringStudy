@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.spring.mapper.BoardMapper">
+
+<insert id="boardInsert" parameterType="kr.spring.entity.Board">
+	INSERT INTO BOARD (TITLE, CONTENT, WRITER, memid)
+	VALUES(#{title}, #{content}, #{writer}, #{memId})
+</insert>
+
+<select id="boardContent" parameterType="kr.spring.entity.Board" resultType="kr.spring.entity.Board">
+	SELECT * FROM BOARD WHERE IDX=#{idx}
+</select>
+
+<delete id="boardDelete" parameterType="kr.spring.entity.Board">
+	DELETE FROM BOARD WHERE IDX=#{idx}
+</delete>
+
+<update id="boardUpdate" parameterType="kr.spring.entity.Board">
+	update board 
+	set title=#{title}, content=#{content}, writer=#{writer}
+	where idx=#{idx}
+</update>
+
+<update id="boardCount" parameterType="kr.spring.entity.Board">
+	update board set count=count+1
+	where idx=#{idx};
+</update>
+
+
+</mapper>
