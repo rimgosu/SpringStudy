@@ -1,52 +1,69 @@
-drop table board;
+-- SQL 문장 작성 --
+
+DROP TABLE BOARD;
+
 CREATE TABLE BOARD(
-	IDX		INT				NOT NULL	AUTO_INCREMENT,
-	memid	varchar(20)		not null,
-	TITLE	VARCHAR(100)	NOT NULL,
-	CONTENT	VARCHAR(2000)	NOT NULL,
-	WRITER	VARCHAR(30)		NOT NULL,
-	INDATE	DATETIME		DEFAULT NOW(),
-	COUNT	INT				DEFAULT 0,
+	IDX INT NOT NULL AUTO_INCREMENT,
+	MEMID VARCHAR(20) NOT NULL,
+	TITLE VARCHAR(100) NOT NULL,
+	CONTENT VARCHAR(2000) NOT NULL,
+	WRITER VARCHAR(30) NOT NULL,
+	INDATE DATETIME DEFAULT NOW(),
+	COUNT INT DEFAULT 0,
 	PRIMARY KEY(IDX)
 );
-select * from board;
 
--- 회원 테이블
-drop table auth;
-drop table member;
-create table member(
-	memidx		int				not null,
-	memid		varchar(20)		not null,
-	mempassword	varchar(68)		not null,
-	memname		varchar(20)		not null,
-	memage		int,
-	memgender	varchar(20),
-	mememail	varchar(50),
-	memprofile	varchar(50), -- 사진 경로 저장할 컬럼
-	primary key(memid)
+INSERT INTO BOARD(TITLE, CONTENT, WRITER)
+VALUES('[속보]명훈쌤 시내에서 미상의 여자와 걷는 모습 발견되어','힝 뻥인데~','준용쌤');
+
+INSERT INTO BOARD(TITLE, CONTENT, WRITER)
+VALUES('[공지]다음주 13일 팀편성 합니다~','팀장지원 하실분들 말씀해주세요','명훈쌤');
+
+INSERT INTO BOARD(TITLE, CONTENT, WRITER)
+VALUES('[알림]다음주 부터 간식은 2일에 한번씩만 나갑니다...','진짜 믿었어?','조미소');
+
+INSERT INTO BOARD(TITLE, CONTENT, WRITER)
+VALUES('AI카페에서 태연씨 다른반 교육생과 이야기 하고 있더라','처음 보는 여자애 같은데...','박치우');
+
+INSERT INTO BOARD(TITLE, CONTENT, WRITER)
+VALUES('저는 사실... 병관쌤과 닮지 않았습니다','죄송합니다 관심을 끌고 싶었어요','김대현');
+
+SELECT * FROM BOARD;
+
+DROP TABLE MEMBER;
+
+DROP TABLE AUTH;
+-- 회원 테이블 --
+CREATE TABLE MEMBER(
+	MEMIDX INT NOT NULL,
+	MEMID VARCHAR(20) NOT NULL,
+	MEMPASSWORD VARCHAR(68) NOT NULL,
+	MEMNAME VARCHAR(20) NOT NULL,
+	MEMAGE INT,
+	MEMGENDER VARCHAR(20),
+	MEMEMAIL VARCHAR(50),
+	MEMPROFILE VARCHAR(50),
+	PRIMARY KEY(MEMID)
 );
--- 권한테이블
--- Sprign Security에서는 member 테이블 안에 반드시 권한이 있어야 한다
+-- 권한 테이블
+-- Spring Security에서는 member테이블 안에 반드시 권한이 있어야 한다
 -- 사용하지 않더라도 넣어주자
-create table auth(
-	no 			int				not null	auto_increment,
-	memid		varchar(50)		not null,
-	auth		varchar(50)		not null,
-	primary key(no),	
-	constraint fk_member_auth foreign key(memid) references member(memid)
-);
+CREATE TABLE AUTH(
+	NO INT NOT NULL AUTO_INCREMENT,
+	MEMID VARCHAR(50) NOT NULL,
+	AUTH VARCHAR(50) NOT NULL,
+	PRIMARY KEY(NO),
+	CONSTRAINT FK_MEMBER_AUTH FOREIGN KEY(MEMID)
+	REFERENCES MEMBER(MEMID)
+)
 
 
-select * from member;
-delete from member;
-select * from auth;
+INSERT INTO MEMBER(MEMID, MEMPASSWORD, MEMNAME, MEMAGE, MEMGENDER, MEMEMAIL, MEMPROFILE)
+VALUES('admin','1234','관리자',20,'남자','admin@gmail.com','');
 
-
-
-
-
-
-
+SELECT * FROM MEMBER;
+SELECT * FROM AUTH;
+DELETE FROM MEMBER;
 
 
 
@@ -55,16 +72,17 @@ select * from auth;
 
 
 
-insert into member(memid, mempassword, memname, memage, memgender, mememail, memprofile)
-values('admin', '1234', '관리자', 20, '남자', 'admin@gmail.com', '');
 
-select DISTINCT memid from member where memid = 'admin';
 
-delete from member;
-commit;
 
-update member set mempassword='수정됨', memname='수정된이름', memage=100, memgender='여자', mememail='이메일@a.com'
-where memid = 'admin';
+
+
+
+
+
+
+
+
 
 
 

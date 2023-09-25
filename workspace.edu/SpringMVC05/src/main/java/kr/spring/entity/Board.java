@@ -5,23 +5,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/* lombok => 생성자 만들어주는 api
- @Data => getter/setter
- @AllArgsConstructor => 전체 생성자
- @NoArgsConstructor => 빈 생성자
- @ToString => toString */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
 public class Board {
-
-	private int idx;
-	private String memId;
-	private String title;
-	private String content;
-	private String writer;
-	private String indate;
-	private int count;
+	
+	private int idx; // 번호
+	private String memID; // 작성했을 당시 로그인 한 사람의 아이디
+	private String title; // 제목
+	private String content; // 내용
+	private String writer; // 작성자
+	private String indate; // 작성일
+	private int count; // 조회수
+	
 	
 }
+
+
+
+
+

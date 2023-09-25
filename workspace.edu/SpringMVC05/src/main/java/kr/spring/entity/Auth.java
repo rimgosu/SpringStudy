@@ -10,9 +10,13 @@ import lombok.ToString;
 @NoArgsConstructor
 @ToString
 public class Auth {
+	// 권한정보를 저장할 클래스
+	private int no; // 일련번호
+	private String memID; // 회원 아이디
+	private String auth; // 회원권한 (ROLE_USER, ROLE_MANAGER, ROLE_ADMIN)
 
-	private int no;
-	private String memId;
-	private String auth; // 회원 권한 (ROLE_USER, ROLE_MANAGER, ROLE_ADMIN)
-	
 }
+
+
+
+
