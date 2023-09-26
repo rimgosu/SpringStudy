@@ -21,7 +21,7 @@ public interface MemberMapper {
 
 	public int join(Member m);
 
-	public Member login(Member m);
+	public Member login(String username);
 
 	public int update(Member m);
 
