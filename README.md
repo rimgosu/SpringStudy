@@ -880,6 +880,9 @@ boolean pwCheck = pwEncoder.matches(member.getMemPassword(), m.getMemPassword())
 
 #### 3단계 보안 (스프링 시큐리티 제공 로그인, 회원가입)
 
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/318cb512-4772-4dd0-b40c-0616cb239e4e)
+
+
 a. 권한 설정
 > SecurityConfig.java
 
@@ -963,20 +966,78 @@ f. 기존 login() 함수 삭제
 
 > MemberController.java
 
-g. loginForm에서 
+g. name을 Spring Security의 Default 값으로 변경
 
 > loginForm.jsp
 
+- `name="memID"` → `name="username"`
+- `name="memPassword"` → `name="password"`
+
+---
+
+#### Security 활용 
+
+a. 세션 → ?error
+
+- 기존에는 세션에 로그인 정보가 있엇지만 지금은 Security로 인해 세션에 없다. (Security Context에 있음.)
+- 모달창을 수정해줘야함.
+```
+// url 뒤에 ?error 확인
+if(${param.error != null}) {
+	$("#messageType").attr("class", "modal-content panel-warning");
+	$(".modal-body").text("아이디와 비밀번호를 확인하세요");
+	$(".modal-title").text("실패메시지");
+	$("#myMessage").modal("show");
+}
+```
+
+b. 세션에 로그인 정보 없으면 어떻게 활용하나.
+- **Security 태그 라이브러리 선언**
+```
+<%@ taglib prefix="security" uri="http://www.springframework.org/security/tags" %>
+```
+
+c. Spring Security에서 제공하는 계정정보 (SecurityContext 안에 계정정보 가져오기)
+- **mvo에 계정 정보 담기**
+```
+<c:set var="mvo" value="${SPRING_SECURITY_CONTEXT.authentication.principal}"/>
+```
+- **auth에 권한 정보 담기**
+```
+<c:set var="auth" value="${SPRING_SECURITY_CONTEXT.authentication.authorities}"/>
+```
 
 
+d. security:authorize 태그 사용
+- 인증 안했으면 태그 안을 실행
+```
+<security:authorize access="isAnonymous()">
+	...
+</security:authorize>
+```
+- 인증 했으면 태그 안을 실행
+```
+<security:authorize access="isAuthenticated()">
+	...
+</security:authorize>
+```
 
 
+e. mvo를 사용하기 위해선..
+- `mvo.memProfile` → `mvo.member.memProfile`
+- mvo의 member의 memProfile, 이런식으로 한단계 더 거쳐야 가져올 수 있다.
 
 
-
-
-
-
-
-
+f. 권한을 태그를 활용해 가져오기
+```
+<security:authorize access="hasRole('ROLE_USER')">
+	U
+</security:authorize>
+<security:authorize access="hasRole('ROLE_MANAGER')">
+	M
+</security:authorize>
+<security:authorize access="hasRole('ROLE_ADMIN')">
+	A
+</security:authorize>
+```
 
