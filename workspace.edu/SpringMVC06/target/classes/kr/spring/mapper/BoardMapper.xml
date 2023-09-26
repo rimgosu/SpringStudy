@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.spring.mapper.BoardMapper">
+
+	<select id="getLists" resultType="kr.spring.entity.Board">
+		SELECT * FROM BOARD ORDER BY INDATE DESC
+	</select>
+	
+	<insert id="boardInsert" parameterType="kr.spring.entity.Board">
+		INSERT INTO BOARD(MEMID, TITLE, CONTENT, WRITER) 
+		VALUES(#{memID}, #{title},#{content},#{writer})
+	</insert>
+	
+	<select id="boardContent" parameterType="int" resultType="kr.spring.entity.Board">
+		SELECT * FROM BOARD WHERE IDX = #{idx}
+	</select>
+	
+	<delete id="boardDelete" parameterType="int">
+		DELETE FROM BOARD WHERE IDX = #{idx}
+	</delete>
+	
+	<update id="boardUpdate" parameterType="kr.spring.entity.Board">
+		UPDATE BOARD SET TITLE=#{title}, CONTENT=#{content}, WRITER = #{writer}
+		WHERE IDX=#{idx}
+	</update>
+	
+	<update id="boardCount" parameterType="int">
+		UPDATE BOARD SET COUNT = COUNT + 1 WHERE IDX = #{idx}
+	</update>
+
+
+	
+
+</mapper>
+
+
+
