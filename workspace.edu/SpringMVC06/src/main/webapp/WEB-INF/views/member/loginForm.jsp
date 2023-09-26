@@ -27,12 +27,12 @@
 			<table style="text-align: center; border : 1px solid #dddddd" class="table table-bordered">
 				<tr>
 					<td style="width: 110px; vertical-align: middle;">아이디</td>
-					<td><input type="text" name="memID" id="memID" class="form-control" maxlength="20" placeholder="아이디를 입력하세요."></td>
+					<td><input type="text" name="username" id="memID" class="form-control" maxlength="20" placeholder="아이디를 입력하세요."></td>
 				</tr>
 				
 				<tr>
 					<td style="width: 110px; vertical-align: middle;">비밀번호</td>
-					<td><input required="required" type="password" name="memPassword" id="memPassword1" class="form-control" maxlength="20" placeholder="비밀번호를 입력하세요."></td>
+					<td><input required="required" type="password" name="password" id="memPassword1" class="form-control" maxlength="20" placeholder="비밀번호를 입력하세요."></td>
 				</tr>
 				
 				<tr>
@@ -95,6 +95,15 @@
 	<script type="text/javascript">
 		
 		$(document).ready(function(){
+			// url 뒤에 ?error 확인
+			if(${param.error != null}) {
+				$("#messageType").attr("class", "modal-content panel-warning");
+				$(".modal-body").text("아이디와 비밀번호를 확인하세요");
+				$(".modal-title").text("실패메시지");
+				$("#myMessage").modal("show");
+			}
+			
+			
 			if(${not empty msgType}){
 				if(${msgType eq "실패메세지"}){
 					$("#messageType").attr("class","modal-content panel-warning");

@@ -129,25 +129,22 @@ public class MemberController {
 		return "member/loginForm";
 	}
 
-	@RequestMapping("/login.do")
-	public String login(Member m, HttpSession session, RedirectAttributes rttr) {
-
-		Member mvo = mapper.login(m);
-		// 추가 비밀번호 일치여부 체크
-		if (mvo != null && pwEncoder.matches(m.getMemPassword(), mvo.getMemPassword())) {
-
-			rttr.addFlashAttribute("msgType", "성공메세지");
-			rttr.addFlashAttribute("msg", "로그인에 성공했습니다.");
-			session.setAttribute("mvo", mvo);
-			return "redirect:/";
-
-		} else {
-			rttr.addFlashAttribute("msgType", "실패메세지");
-			rttr.addFlashAttribute("msg", "로그인에 실패했습니다.");
-			return "redirect:/loginForm.do";
-		}
-
-	}
+	/*
+	 * @RequestMapping("/login.do") public String login(Member m, HttpSession
+	 * session, RedirectAttributes rttr) {
+	 * 
+	 * Member mvo = mapper.login(m); // 추가 비밀번호 일치여부 체크 if (mvo != null &&
+	 * pwEncoder.matches(m.getMemPassword(), mvo.getMemPassword())) {
+	 * 
+	 * rttr.addFlashAttribute("msgType", "성공메세지"); rttr.addFlashAttribute("msg",
+	 * "로그인에 성공했습니다."); session.setAttribute("mvo", mvo); return "redirect:/";
+	 * 
+	 * } else { rttr.addFlashAttribute("msgType", "실패메세지");
+	 * rttr.addFlashAttribute("msg", "로그인에 실패했습니다."); return
+	 * "redirect:/loginForm.do"; }
+	 * 
+	 * }
+	 */
 
 	@RequestMapping("/updateForm.do")
 	public String updateForm() {

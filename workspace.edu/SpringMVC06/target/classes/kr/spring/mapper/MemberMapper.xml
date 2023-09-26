@@ -14,9 +14,9 @@
 		#{memGender}, #{memEmail}, #{memProfile})
 	</insert>
 	
-	<select id="login" resultMap="memberMap" parameterType="kr.spring.entity.Member">
+	<select id="login" resultMap="memberMap">
 		SELECT * FROM MEMBER mem LEFT OUTER JOIN Auth auth on
-		mem.MEMID = auth.MEMID WHERE mem.MEMID = #{memID}
+		mem.MEMID = auth.MEMID WHERE mem.MEMID = #{username}
 	</select>
 
 	<update id="update" parameterType="kr.spring.entity.Member">

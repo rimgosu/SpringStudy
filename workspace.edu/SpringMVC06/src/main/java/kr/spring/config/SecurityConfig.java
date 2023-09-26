@@ -2,13 +2,17 @@ package kr.spring.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.web.filter.CharacterEncodingFilter;
+
+import kr.spring.security.MemberUserDetailsService;
 
 @Configuration // WebConfig.java에서 SecurityConfig를 읽어오기위한 어노테이션
 @EnableWebSecurity // web에서 Sercurity를 쓰겠다
@@ -17,6 +21,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
 	// WebSecurityConfigurerAdapter
 	// 요청에 대한 보안 설정을 해주는 클래스
 	
+	@Bean // 우리가 만든 MemberUserDetailsService 메모리로 올려 사용하겠다.
+	public UserDetailsService MemberUserDetailsService() {
+		
+		return new MemberUserDetailsService(); 
+	}
+	
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		// 내가 만든 MemberUserDetailsService와
+		// 암호화 및 복호화를 해주는 패스워드 인코더를
+		// Spring Security에 등록하는 메소드
+		auth.userDetailsService(MemberUserDetailsService()).passwordEncoder(passwordEncoder());
+	}
+
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		// 요청에 대한 보안 설정하는 곳

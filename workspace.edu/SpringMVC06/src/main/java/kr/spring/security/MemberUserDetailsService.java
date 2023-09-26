@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import kr.spring.entity.Member;
+import kr.spring.entity.MemberUser;
 import kr.spring.mapper.MemberMapper;
 
 public class MemberUserDetailsService implements UserDetailsService{
@@ -29,9 +30,15 @@ public class MemberUserDetailsService implements UserDetailsService{
 		// 바로 담을 수 없음
 		// 내가 원하는 VO를 담을 수 있게 변환해주는 User Class 필요
 		
+		if(mvo != null) {
+			// 해당 사용자 존재
+			return new MemberUser(mvo);
+		} else {
+			// 해당 유저가 없을 때
+			throw new UsernameNotFoundException("user with username" + username + "does not exist.");
+		}
 		
 		
-		return null;
 	}
 
 	
