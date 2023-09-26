@@ -875,6 +875,101 @@ boolean pwCheck = pwEncoder.matches(member.getMemPassword(), m.getMemPassword())
 
 
 
+### 9월 26일 
+> SpringMVC06
+
+#### 3단계 보안 (스프링 시큐리티 제공 로그인, 회원가입)
+
+a. 권한 설정
+> SecurityConfig.java
+
+- 로그인
+- 로그아웃
+- 특정페이지 권한 설정
+```
+http
+	.authorizeRequests() /* 요청에 따른 권한을 처리하겠다 */
+		.antMatchers("/") /* 어떠한 경로로 왔을 때 권한처리를 할 것인지 */
+			.permitAll() /* 누구나 접근 가능하게끔 전체 권한 */
+				.and() 
+			.formLogin() /* 로그인 보안기능 추가 */
+				.loginPage("/loginForm.do") 
+				.loginProcessingUrl("/login.do")
+				.permitAll() 
+				.and() 
+			.logout() /* 로그아웃기능 */
+				.invalidateHttpSession(true) 
+				.logoutSuccessUrl("/")
+				.and()
+			.exceptionHandling().accessDeniedPage("/access-denied"); /* 로그인도 안하고 특정페이지에 접근하려고할 때 막기 */
+					
+```
+
+> MemberController.java <br>
+> access-denied.jsp
+
+```
+@GetMapping("/access-denied")
+	public String showAccessDenied() {
+		return "access-denied";
+	}
+```
+
+b. Spring Security와 mapper 연결
+
+> [kr.spring.security/MemberUserDetailsService.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC06/src/main/java/kr/spring/security/MemberUserDetailsService.java)
+
+- UserDetailsService 인터페이스 상속
+- 메서드를 가져와야 한다.
+- mapper의 로그인 기능을 연결.
+
+c. 스프링 보안 엔티티
+
+> [kr.spring.entity/MemberUser.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC06/src/main/java/kr/spring/entity/MemberUser.java)
+
+- org.springframework.security.core.userdetails.User 상속
+- Member 엔티티 객체로 가져옴
+
+
+
+d. 로그인 매퍼
+
+> MemberMapper.xml
+
+```
+<select id="login" resultMap="memberMap">
+	SELECT * FROM MEMBER mem LEFT OUTER JOIN Auth auth on
+	mem.MEMID = auth.MEMID WHERE mem.MEMID = #{username}
+</select>
+```
+
+e. MemberUserDetailsService 사용
+
+> kr.spring.config/SecurityConfig.java
+
+```
+@Bean // 우리가 만든 MemberUserDetailsService 메모리로 올려 사용하겠다.
+public UserDetailsService MemberUserDetailsService() {
+	return new MemberUserDetailsService(); 
+}
+
+@Override
+protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+	auth.userDetailsService(MemberUserDetailsService()).passwordEncoder(passwordEncoder());
+}
+```
+
+f. 기존 login() 함수 삭제
+
+> MemberController.java
+
+g. loginForm에서 
+
+> loginForm.jsp
+
+
+
+
 
 
 
