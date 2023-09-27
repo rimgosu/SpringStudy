@@ -832,9 +832,9 @@ VALUES(
 
 ### 9월 25일
 
-a. `<resultMap>` 
-	1. result를 추가해주기 위한 도구
-	2. 배열 받아오기 위해선 `<collection />`
+a. `<resultMap>` <br>
+	1. result를 추가해주기 위한 도구 <br>
+	2. 배열 받아오기 위해선 `<collection />` <br>
 
 ```
 <resultMap type="kr.spring.entity.Auth" id="authMap">
@@ -882,6 +882,7 @@ boolean pwCheck = pwEncoder.matches(member.getMemPassword(), m.getMemPassword())
 
 ![image](https://github.com/rimgosu/SpringStudy/assets/120752098/318cb512-4772-4dd0-b40c-0616cb239e4e)
 
+- 계정 정보 보관 장소 : Session → Spring Context Holder
 
 a. 권한 설정
 > SecurityConfig.java
@@ -1040,4 +1041,99 @@ f. 권한을 태그를 활용해 가져오기
 	A
 </security:authorize>
 ```
+
+
+
+### 9월 27일 (Security 로그아웃,)
+
+a. 로그아웃
+
+- 더 이상 세션에 로그인 정보가 저장되어 있지 않다.
+- session.invalidate();로 로그아웃되는 것처럼 보이지만 그렇지 않다.
+- 세션으로 로그인 하는 것은 키로 `jsession 아이디 쿠키`를 받는다. 마찬가지로
+- Security에서 키로 `세션`을 받고, 이를 해제해서 로그아웃이 된 것 처럼 보이는 것이다.
+	- 해결 방법 : http.logout()
+
+a-1. `<button onclick="logout()">` == `<a href="javascript:logout()">`
+
+a-2. 비동기 통신으로 SecurityConfig.java에 있는 http.logout() 기능으로 요청
+
+> header.jsp
+
+- post 방식으로 보내주어야 한다.
+```
+function logout() {
+	$.ajax({
+		url : "${contextPath}/logout",
+		type : "post",
+		beforeSend : function(xhr) {
+			xhr.setRequestHeader(csrfHeaderName, csrfTokenValue);
+		},
+		success : function() {
+			location.href = "${contextPath}/";	
+		},5
+		error : function() {
+			alert("error");
+		}
+		
+	});
+}
+```
+
+b. 회원 정보 수정
+
+> MemberController.java
+
+- Authentication 객체 : 회원의 정보가 담겨있다.
+- _자동완성 조심_ : security.core.Authentication
+- authentication.getPrincipal(); : return 타입은 User이다. _다운 캐스팅 필요_
+- _**세션에 담는 일은 전부 다음 코드로 대체된다고 생각하면 됨.**_
+
+
+#### Session 대신 Authentication 
+```
+import org.springframework.security.core.Authentication;
+
+Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+MemberUser userAccount = (MemberUser) authentication.getPrincipal();
+Authentication newAuthentication =
+	createNewAuthentication(authentication, userAccount.getMember().getMemID());
+						SecurityContextHolder.getContext().setAuthentication(newAuthentication);
+```
+
+- createNewAuthentication()이란 함수를 생성하고,
+- 회원 정보를 새로 받아 재로그인해준다.
+
+
+```
+private Authentication createNewAuthentication(Authentication currentAuth, String username) {
+	UserDetails newPrincipal = memberUserDetailsService.loadUserByUsername(username);
+	UsernamePasswordAuthenticationToken newAuth =
+			new UsernamePasswordAuthenticationToken(
+					newPrincipal, currentAuth.getCredentials(), newPrincipal.getAuthorities());
+	
+	newAuth.setDetails(currentAuth.getDetails());
+	
+	return newAuth;
+}
+```
+
+
+c. 프로필 사진 변경
+
+> imageForm.jsp
+
+- 기존 방식은 id를 RequestGetParameter로 가져왔지만,
+- 지금은 Security의 보안 때문에 id 정보를 받아올 수 없다.
+- input:hidden으로 아이디를 multi 객체에 보내고 거기서 다시 가져오는 것과 같다.
+- Session 대신 Authentication을 사용하면 된다.
+
+
+
+
+
+
+
+
 
