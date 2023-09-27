@@ -2,6 +2,18 @@
     pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
+
+<%@ taglib prefix="security" uri="http://www.springframework.org/security/tags" %>
+
+<!-- Spring Security에서 제공하는 계정정보 (SecurityContext 안에 계정정보 가져오기) -->
+<c:set var="mvo" value="${SPRING_SECURITY_CONTEXT.authentication.principal}" />
+<!-- 권한정보 -->
+<c:set var="auth" value="${SPRING_SECURITY_CONTEXT.authentication.authorities}" />
+
+
+
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -42,7 +54,7 @@
 		<!-- 글쓰기 폼 -->
 		<div class="panel-body" id="wform" style="display : none;">
 			<form id="frm">
-			<input type="hidden" name="memID" value="${mvo.memID}">
+			<input type="hidden" name="memID" value="${mvo.member.memID}">
 			<table class="table">
 				<tr>
 					<td>제목</td>
@@ -54,7 +66,7 @@
 				</tr>
 				<tr>
 					<td>작성자</td>
-					<td><input readonly="readonly" value="${mvo.memName}" type="text" name="writer" class="form-control"></td>
+					<td><input readonly="readonly" value="${mvo.member.memName}" type="text" name="writer" class="form-control"></td>
 				</tr>
 				<tr>
 					<td colspan="2" align="center">
@@ -127,7 +139,7 @@
 				
 				// 수정 삭제 화면
 				// 조건문안에서 EL식을 쓰고 싶다면 문자열로 감싸줘야한다
-				if("${mvo.memID}" == obj.memID){
+				if("${mvo.member.memID}" == obj.memID){
 					listHtml += "<br>";
 					listHtml += "<span id='ub"+ obj.idx +"'>";
 					listHtml += "<button onclick='goUpdateForm(" + obj.idx + ")' class='btn btn-sm btn-success'>수정화면</button></span> &nbsp;"

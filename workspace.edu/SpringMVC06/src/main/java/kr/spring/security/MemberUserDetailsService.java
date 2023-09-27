@@ -33,6 +33,7 @@ public class MemberUserDetailsService implements UserDetailsService{
 		if(mvo != null) {
 			// 해당 사용자 존재
 			return new MemberUser(mvo);
+			// Spring Security Context 안에 회원의 정보를 저장
 		} else {
 			// 해당 유저가 없을 때
 			throw new UsernameNotFoundException("user with username" + username + "does not exist.");

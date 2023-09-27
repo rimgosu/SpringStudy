@@ -4,6 +4,12 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <c:set var="contextPath" value="${pageContext.request.contextPath}" />
+<%@ taglib prefix="security" uri="http://www.springframework.org/security/tags" %>
+<c:set var="mvo" value="${SPRING_SECURITY_CONTEXT.authentication.principal}" />
+<c:set var="auth" value="${SPRING_SECURITY_CONTEXT.authentication.authorities}" />
+
+
+
 
 <!DOCTYPE html>
 <html>
@@ -25,13 +31,14 @@
 		<form action="${contextPath}/update.do" method="post">
 			<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 			<input type="hidden" name="memPassword" id="memPassword" value="" >
-			<input type="hidden" name="memID" id="memID" value="${mvo.memID}">
-			<%-- <input type="hidden" name="memProfile" value="${mvo.memProfile}"> --%>
+			<input type="hidden" name="memID" id="memID" value="${mvo.member.memID}">
+			<input type="hidden" name="memProfile" id="memProfile" value="${mvo.member.memProfile}">
+			<%-- <input type="hidden" name="memProfile" value="${mvo.member.memProfile}"> --%>
 		
 			<table style="text-align: center; border : 1px solid #dddddd" class="table table-bordered">
 				<tr>
 					<td style="width: 110px; vertical-align: middle;">아이디</td>
-					<td>${mvo.memID}</td>
+					<td>${mvo.member.memID}</td>
 				</tr>
 				
 				<tr>
@@ -46,12 +53,12 @@
 				
 				<tr>
 					<td style="width: 110px; vertical-align: middle;">사용자이름</td>
-					<td colspan="2"><input required="required" value="${mvo.memName}" type="text" id="memName" name="memName" class="form-control" maxlength="20" placeholder="이름을 입력하세요."></td>
+					<td colspan="2"><input required="required" value="${mvo.member.memName}" type="text" id="memName" name="memName" class="form-control" maxlength="20" placeholder="이름을 입력하세요."></td>
 				</tr>
 				
 				<tr>
 					<td style="width: 110px; vertical-align: middle;">나이</td>
-					<td colspan="2"><input required="required" value="${mvo.memAge}" type="number" id="memAge" name="memAge" class="form-control" maxlength="20" placeholder="나이를 입력하세요."></td>
+					<td colspan="2"><input required="required" value="${mvo.member.memAge}" type="number" id="memAge" name="memAge" class="form-control" maxlength="20" placeholder="나이를 입력하세요."></td>
 				</tr>
 				
 				<tr>
@@ -60,7 +67,7 @@
 						<div class="form-group" style="text-align: center; margin: 0 auto;">
 							<div class="btn-group" data-toggle="buttons">
 							
-								<c:if test="${mvo.memGender eq '남자' }">
+								<c:if test="${mvo.member.memGender eq '남자' }">
 									<label class="btn btn-primary active">
 									<input type="radio" id="memGender" name="memGender" autocomplete="off" value="남자" checked="checked"> 남자    
 									</label>
@@ -69,7 +76,7 @@
 									</label>
 								</c:if>
 							
-								<c:if test="${mvo.memGender eq '여자' }">
+								<c:if test="${mvo.member.memGender eq '여자' }">
 									<label class="btn btn-primary">
 									<input type="radio" id="memGender" name="memGender" autocomplete="off" value="남자" > 남자    
 									</label>
@@ -85,7 +92,7 @@
 				
 				<tr>
 					<td style="width: 110px; vertical-align: middle;">이메일</td>
-					<td colspan="2"><input value="${mvo.memEmail}" type="email" name="memEmail" id="memEmail" class="form-control" maxlength="50" placeholder="이메일를 입력하세요."></td>
+					<td colspan="2"><input value="${mvo.member.memEmail}" type="email" name="memEmail" id="memEmail" class="form-control" maxlength="50" placeholder="이메일를 입력하세요."></td>
 				</tr>
 				
 				<!-- 가지고있는 권한 체크 및 권한 수정부분 -->
@@ -93,21 +100,21 @@
 					<td style="width: 110px; vertical-align: middle;">사용자권한</td>
 					<td colspan="2">
 						<input value="ROLE_USER" name="authList[0].auth" type="checkbox"
-							<c:forEach items="${mvo.authList}" var="auth">
+							<c:forEach items="${mvo.member.authList}" var="auth">
 								<c:if test="${auth.auth eq 'ROLE_USER'}">
 									checked
 								</c:if>
 							</c:forEach>
 						 /> ROLE_USER					
 						<input value="ROLE_MANAGER" name="authList[1].auth" type="checkbox"
-							<c:forEach items="${mvo.authList}" var="auth">
+							<c:forEach items="${mvo.member.authList}" var="auth">
 								<c:if test="${auth.auth eq 'ROLE_MANAGER'}">
 									checked
 								</c:if>
 							</c:forEach>
 						 /> ROLE_MANAGER					
 						<input value="ROLE_ADMIN" name="authList[2].auth" type="checkbox"
-							<c:forEach items="${mvo.authList}" var="auth">
+							<c:forEach items="${mvo.member.authList}" var="auth">
 								<c:if test="${auth.auth eq 'ROLE_ADMIN'}">
 									checked
 								</c:if>
