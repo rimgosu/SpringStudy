@@ -1132,7 +1132,15 @@ c. 프로필 사진 변경
 
 
 
+### 10월 4일 (3 tier)
 
+> SpringMVC07
+
+<img width="1028" alt="image" src="https://github.com/rimgosu/SpringStudy/assets/120752098/7604c1de-df90-4133-a3fc-0f3bf1aa38af">
+
+- MVC 패턴에 **서비스 층**이 추가됨
+- 서비스 층은 **실질적인 업무**를 담당한다.
+- `kr.spring.service` 패키지 생성.
 
 
 
