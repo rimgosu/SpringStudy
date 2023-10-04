@@ -1166,4 +1166,48 @@ c. 프로필 사진 변경
 
 #### junit 테스트
 
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/36800ef0-9ca2-4968-ab53-4c97f7dbb3f6)
+
+
+##### junit Setting
+- 버전 다운그레이드
+
+	```
+	  <dependency>
+		<groupId>junit</groupId>
+		<artifactId>junit</artifactId>
+		<version>4.12</version>
+		<scope>test</scope>
+	  </dependency>    
+	```
+
+- log4j 업그레이드
+
+	```
+	  <groupId>log4j</groupId>
+	<artifactId>log4j</artifactId>
+	<version>1.2.17</version>
+	```
+
+- dependency 추가
+
+	```
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-test</artifactId>
+		<version>${org.springframework-version}</version>
+	</dependency>
+	```
+
+- [src.**test**.java.kr.spring.mapper.DataSourceTest.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC07_my/src/test/java/kr/spring/mapper/DataSourceTest.java)
+
+	- Autowired로 객체를 가져오고 @Test 어노테이션을 달고 junit 테스트를 진행하면 된다.
+
+
+
+
+
+
+
+
 
