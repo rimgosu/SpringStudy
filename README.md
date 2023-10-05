@@ -1206,7 +1206,37 @@ c. 프로필 사진 변경
 
 
 
+### 10월 5일
 
+
+
+#### fmt
+- 날짜 포맷을 지정할 수 있는 태그 라이브러리
+- 임포트
+```
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+```
+
+- 사용
+```
+<fmt:formatDate value="${vo.indate}" pattern="yyyy-MM-dd"/>
+```
+
+
+
+#### 동적 sql
+- SELECT INULL의 문법이 보기 어려우므로 selectKey 문법으로 별칭을 달아줄 수 있다.
+```
+<insert id="insertSelectKey" parameterType="kr.spring.entity.Board">
+<selectKey keyProperty="idx,boardGroup" resultType="kr.spring.entity.Board" order="BEFORE">
+	SELECT IFNULL(MAX(IDX) + 1, 1) as idx,
+		   IFNULL(MAX(BOARDGROUP) + 1, 1) as boardGroup
+	  FROM TBLBOARD
+</selectKey>
+...
+
+</insert>
+```
 
 
 
