@@ -29,7 +29,7 @@
    - <web-app version="2.5" xmlns="http://Java.sun.com/xml/ns/javaee"
 
 5. 한글 깨짐 해결 :
-   - 한글깨짐방지.txt => web.xml로 붙여넣기
+   - [한글깨짐방지.txt](https://github.com/rimgosu/SpringStudy/blob/master/%ED%95%9C%EA%B8%80%EA%B9%A8%EC%A7%90%EB%B0%A9%EC%A7%80.txt) => web.xml로 붙여넣기
 
 
 
