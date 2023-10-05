@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="egovframework.example.sample.service.impl.SampleMapper">
+	
+
+	<resultMap id="sample" type="egovframework.example.sample.service.SampleVO">
+		<result property="id" column="ID" />
+		<result property="name" column="NAME" />
+		<result property="description" column="DESCRIPTION" />
+		<result property="useYn" column="USE_YN" />
+		<result property="regUser" column="REG_USER" />
+	</resultMap>
+	
+	<insert id="insertSample">
+		<![CDATA[
+			INSERT INTO SAMPLE 
+				( ID
+				  , NAME
+				  , DESCRIPTION
+				  , USE_YN
+				  , REG_USER )
+			VALUES ( #{id}
+				  , #{name}
+				  , #{description}
+				  , #{useYn}
+				  , #{regUser} )
+		]]>
+	</insert>
+	
+	<update id="updateSample">
+		<![CDATA[
+			UPDATE SAMPLE
+			SET ID=#{id}
+				, NAME=#{name}
+				, DESCRIPTION=#{description}
+				, USE_YN=#{useYn}
+				, REG_USER=#{regUser}
+						WHERE ID=#{id}
+				]]>
+	</update>
+	
+	<delete id="deleteSample">
+		<![CDATA[
+			DELETE FROM SAMPLE 
+						WHERE ID=#{id}
+				]]>
+	</delete>
+	
+	<select id="selectSample" resultMap="sample">
+		<![CDATA[
+			SELECT
+				ID
+				, NAME
+				, DESCRIPTION
+				, USE_YN
+				, REG_USER
+			FROM SAMPLE
+						WHERE ID=#{id}
+				]]>
+	</select>
+	
+	<select id="selectSampleList" parameterType="egovframework.example.sample.service.SampleVO" resultType="egovMap">
+			SELECT
+								ID
+								, NAME
+								, DESCRIPTION
+								, USE_YN
+								, REG_USER
+					FROM SAMPLE
+			WHERE 1=1
+			<if test="searchKeyword != null and searchKeyword != ''">
+				<if test="searchCondition == 0">AND
+					ID = #{searchKeyword}
+				</if>
+				<if test="searchCondition == 1">AND
+					NAME LIKE '%' || #{searchKeyword} || '%'
+				</if>
+			</if>
+				ORDER BY 
+						ID DESC
+					LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+	</select>	
+	<select id="selectSampleListTotCnt" parameterType="egovframework.example.sample.service.SampleVO" resultType="int">
+			SELECT COUNT(*) totcnt
+			FROM SAMPLE
+			WHERE 1=1
+			<if test="searchKeyword != null and searchKeyword != ''">
+				<if test="searchCondition == 0">AND
+					ID = #{searchKeyword}
+				</if>
+				<if test="searchCondition == 1">AND
+					NAME LIKE '%' || #{searchKeyword} || '%'
+				</if>
+			</if>
+	</select>
+
+</mapper>

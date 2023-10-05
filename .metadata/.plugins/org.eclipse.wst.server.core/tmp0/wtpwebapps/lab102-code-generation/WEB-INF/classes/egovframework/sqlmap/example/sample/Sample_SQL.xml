@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="Sample">
+	
+	<typeAlias  alias="egovMap" type="org.egovframe.rte.psl.dataaccess.util.EgovMap"/>
+	<typeAlias  alias="sampleSerarchVO" type="egovframework.example.sample.service.SampleDefaultVO"/>
+	
+	<resultMap id="sample" class="egovframework.example.sample.service.SampleVO">
+		<result property="id" column="ID" columnIndex="1"/>
+		<result property="name" column="NAME" columnIndex="2"/>
+		<result property="description" column="DESCRIPTION" columnIndex="3"/>
+		<result property="useYn" column="USE_YN" columnIndex="4"/>
+		<result property="regUser" column="REG_USER" columnIndex="5"/>
+	</resultMap>
+	
+	<insert id="sampleDAO.insertSample_S">
+		<![CDATA[
+			INSERT INTO SAMPLE 
+				( ID
+				  , NAME
+				  , DESCRIPTION
+				  , USE_YN
+				  , REG_USER )
+			VALUES ( #id#
+				  , #name#
+				  , #description#
+				  , #useYn#
+				  , #regUser# )
+		]]>
+	</insert>
+	
+	<update id="sampleDAO.updateSample_S">
+		<![CDATA[
+			UPDATE SAMPLE
+			SET ID=#id#
+				, NAME=#name#
+				, DESCRIPTION=#description#
+				, USE_YN=#useYn#
+				, REG_USER=#regUser#
+						WHERE ID=#id#
+				]]>
+	</update>
+	
+	<delete id="sampleDAO.deleteSample_S">
+		<![CDATA[
+			DELETE FROM SAMPLE 
+						WHERE ID=#id#
+				]]>
+	</delete>
+	
+	<select id="sampleDAO.selectSample_S" resultMap="sample">
+		<![CDATA[
+			SELECT
+				ID
+				, NAME
+				, DESCRIPTION
+				, USE_YN
+				, REG_USER
+			FROM SAMPLE
+						WHERE ID=#id#
+				]]>
+	</select>
+	
+	<select id="sampleDAO.selectSampleList_D" parameterClass="sampleSerarchVO" resultClass="egovMap">
+			SELECT
+								ID
+								, NAME
+								, DESCRIPTION
+								, USE_YN
+								, REG_USER
+					FROM SAMPLE
+			WHERE 1=1
+			<isEqual prepend="AND" property="searchCondition" compareValue="0">
+				ID = #searchKeyword#
+			</isEqual>
+			<isEqual prepend="AND" property="searchCondition" compareValue="1">
+				NAME LIKE '%' || #searchKeyword# || '%'
+			</isEqual>
+				ORDER BY 
+						ID DESC
+					LIMIT #recordCountPerPage# OFFSET #firstIndex#
+	</select>	
+	<select id="sampleDAO.selectSampleListTotCnt_S" parameterClass="sampleSerarchVO" resultClass="int">
+			SELECT COUNT(*) totcnt
+			FROM SAMPLE
+			WHERE 1=1
+			<isEqual prepend="AND" property="searchCondition" compareValue="0">
+				ID = #searchKeyword#
+			</isEqual>
+			<isEqual prepend="AND" property="searchCondition" compareValue="1">
+				NAME LIKE '%' || #searchKeyword# || '%'
+			</isEqual>
+	</select>
+
+</sqlMap>

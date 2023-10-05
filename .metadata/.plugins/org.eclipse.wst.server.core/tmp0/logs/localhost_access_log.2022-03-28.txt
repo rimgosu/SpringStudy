@@ -1,0 +1,12 @@
+127.0.0.1 - - [28/Mar/2022:14:55:07 +0900] "GET / HTTP/1.1" 404 750
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:14:55:08 +0900] "GET /lab102-code-generation/ HTTP/1.1" 404 777
+127.0.0.1 - - [28/Mar/2022:14:56:00 +0900] "GET / HTTP/1.1" 404 750
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:14:56:01 +0900] "GET /lab102-code-generation/ HTTP/1.1" 404 777
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:14:56:07 +0900] "GET /lab102-code-generation/ HTTP/1.1" 404 777
+127.0.0.1 - - [28/Mar/2022:14:59:31 +0900] "GET / HTTP/1.1" 404 750
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:14:59:35 +0900] "GET /lab102-code-generation/ HTTP/1.1" 500 848
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:14:59:36 +0900] "GET /lab102-code-generation/css/egovframework/sample.css HTTP/1.1" 200 10158
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:14:59:36 +0900] "GET /lab102-code-generation/images/egovframework/example/error_bg.jpg HTTP/1.1" 404 848
+127.0.0.1 - - [28/Mar/2022:15:03:08 +0900] "GET / HTTP/1.1" 404 750
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:15:03:10 +0900] "GET /lab102-code-generation/ HTTP/1.1" 500 848
+0:0:0:0:0:0:0:1 - - [28/Mar/2022:15:03:10 +0900] "GET /lab102-code-generation/images/egovframework/example/error_bg.jpg HTTP/1.1" 404 848

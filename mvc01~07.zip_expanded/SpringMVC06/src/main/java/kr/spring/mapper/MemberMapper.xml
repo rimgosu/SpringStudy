@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.spring.mapper.MemberMapper">
+
+	<select id="registerCheck" parameterType="String" resultType="kr.spring.entity.Member">
+		SELECT * FROM MEMBER WHERE MEMID = #{memID}	
+	</select>
+	
+	<insert id="join" parameterType="kr.spring.entity.Member">
+		INSERT INTO MEMBER(MEMIDX, MEMID, MEMPASSWORD, MEMNAME, MEMAGE, MEMGENDER,
+		MEMEMAIL, MEMPROFILE)
+		VALUES((SELECT IFNULL(MAX(MEMIDX) + 1, 1) FROM MEMBER MEM),
+		#{memID}, #{memPassword}, #{memName}, #{memAge},
+		#{memGender}, #{memEmail}, #{memProfile})
+	</insert>
+	
+	<select id="login" resultMap="memberMap">
+		SELECT * FROM MEMBER mem LEFT OUTER JOIN Auth auth on
+		mem.MEMID = auth.MEMID WHERE mem.MEMID = #{username}
+	</select>
+
+	<update id="update" parameterType="kr.spring.entity.Member">
+	    UPDATE MEMBER SET MEMPASSWORD = #{memPassword}, 
+	    MEMNAME = #{memName}, MEMAGE = #{memAge}, MEMGENDER = #{memGender},
+	    MEMEMAIL = #{memEmail}
+	    WHERE MEMID = #{memID}
+	</update>
+	
+	<update id="profileUpdate" parameterType="kr.spring.entity.Member">
+		UPDATE MEMBER SET MEMPROFILE = #{memProfile}
+		WHERE MEMID = #{memID}
+	</update>
+	
+	<select id="getMember" parameterType="String" resultMap="memberMap">
+		SELECT * FROM MEMBER mem LEFT OUTER JOIN Auth auth on
+		mem.MEMID = auth.MEMID WHERE mem.MEMID = #{memID}
+	</select>
+	
+	<resultMap type="kr.spring.entity.Auth" id="authMap">
+		<id property="no" column="no" />
+		<result property="memID" column="memID" />
+		<result property="auth" column="auth" />
+	</resultMap>
+	
+	<resultMap type="kr.spring.entity.Member" id="memberMap">
+		<id property="memIdx" column="memIdx" />
+		<result property="memID" column="memID" />
+		<result property="memPassword" column="memPassword" />
+		<result property="memName" column="memName" />
+		<result property="memAge" column="memAge" />
+		<result property="memGender" column="memGender" />
+		<result property="memEmail" column="memEmail" />
+		<result property="memProfile" column="memProfile" />
+		<collection property="authList" resultMap="authMap" />
+	</resultMap>
+	
+	<insert id="authInsert" parameterType="kr.spring.entity.Auth">
+		INSERT INTO AUTH(MEMID, AUTH) VALUES(#{memID}, #{auth})	
+	</insert>
+	
+	<delete id="authDelete" parameterType="String">
+		DELETE FROM AUTH WHERE MEMID = #{memID}
+	</delete>
+	
+	
+	
+	
+	
+
+
+</mapper>
+
+
+

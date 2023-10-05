@@ -1,0 +1,839 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Spring]]></title><description><![CDATA[Level up your Java code and explore what Spring can do for you.]]></description><link>https://spring.io</link><generator>GatsbyJS</generator><lastBuildDate>Wed, 04 Oct 2023 19:16:49 GMT</lastBuildDate><item><title><![CDATA[Synchronizing with External Transaction Managers in Spring Cloud Stream Kafka Applications]]></title><link>https://spring.io/blog/2023/10/04/synchronizing-with-external-transaction-managers-in-spring-cloud-stream</link><guid isPermaLink="true">https://spring.io/blog/2023/10/04/synchronizing-with-external-transaction-managers-in-spring-cloud-stream</guid><dc:creator><![CDATA[Soby Chacko]]></dc:creator><pubDate>Wed, 04 Oct 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;&lt;strong&gt;Other parts in this blog series&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Part 1: &lt;a href=&quot;https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;Introduction to Transactions in Spring Cloud Stream Kafka Applications&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Part 2: &lt;a href=&quot;https://spring.io/blog/2023/09/28/producer-initiated-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;Producer Initiated Transactions in Spring Cloud Stream Kafka Applications
+&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;In the &lt;a href=&quot;https://spring.io/blog/2023/09/28/producer-initiated-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;previous part&lt;/a&gt; of this blog series, we saw the basics of transaction management, primarily when using producer-initiated Spring Cloud Stream Kafka applications. In that discussion, we also briefly saw how a Spring Cloud Stream Kafka consumer application could consume records produced transactionally with proper isolation levels. When you synchronize with external transaction managers, such as one for a relational database, we mentioned that you must use transactions to ensure data integrity. In this part, we will see how we can accomplish transactional guarantees in Spring Cloud Stream when using external transaction managers.&lt;/p&gt;
+&lt;p&gt;Before we start this exploration, it is important to remember that achieving distributed transactions is extremely difficult in practice. You must rely on 2 phase commit (2PC) strategies and a properly distributed transaction manager, such as a JTA-compatible transaction manager, to do this properly. Nevertheless, most enterprise use cases may not require this level of complexity, and most use cases that we consider and see people use in practice may be better off by sticking with the non-distributed transactional methods, as we describe in this blog. &lt;a href=&quot;https://www.infoworld.com/article/2077963/distributed-transactions-in-spring--with-and-without-xa.html&quot;&gt;This article&lt;/a&gt;, by &lt;a href=&quot;https://spring.io/team/dsyer&quot;&gt;Dr.Dave Syer&lt;/a&gt; of the Spring engineering team, published back in 2009, is still relevant (even after 14 years) to understanding the challenges of distributed transactions and the recommended alternative approaches in Spring.&lt;/p&gt;
+&lt;p&gt;Let’s return to our discussion: achieving transactionality in Spring Cloud Stream Kafka application when using external transaction managers in producer-initiated and consume-process-produce (read-process-write) applications.&lt;/p&gt;
+&lt;p&gt;Now we can set the stage for our discussion in an example domain by sketching out some code that we can work through in the discussion. We use a few domain objects to drive the demo and have created pseudo-code for them.&lt;/p&gt;
+&lt;p&gt;Assume that the messaging system deals with “event” domain types - let&apos;s use a &lt;strong&gt;PersonEvent&lt;/strong&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;class PersonEvent {
+
+   String name;
+   String type;
+
+   //Rest omitted for brevity
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;We also need a Domain Entity for the &lt;strong&gt;Person&lt;/strong&gt; object:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Entity
+@Table(name = &quot;person&quot;)
+public class Person {
+
+   @Id
+   @GeneratedValue(strategy = GenerationType.IDENTITY)
+   private Long id;
+
+   private String name;
+
+   // Rest omitted for brevity
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Finally, we need a &lt;strong&gt;CrudRepository&lt;/strong&gt; for the &lt;strong&gt;Person&lt;/strong&gt; domain object:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public interface PersonRepository extends CrudRepository&amp;#x3C;Person, String&gt; {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In the case of a producer-initiated scenario, assume that, when a method is called (via REST, for example), a &lt;strong&gt;Person&lt;/strong&gt; domain object is created, persists to the database, and is sent as a &lt;strong&gt;PersonEvent&lt;/strong&gt; to an outbound Kafka topic through &lt;code&gt;StreamBridge&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;In the case of the &lt;strong&gt;consume-process-produce&lt;/strong&gt; scenario, assume that the input topic receives a &lt;strong&gt;PersonEvent&lt;/strong&gt;, from which the processor generates a &lt;strong&gt;Person&lt;/strong&gt; domain object to persist to a database. Finally, it produces another &lt;strong&gt;PersonEvent&lt;/strong&gt; to an outbound Kafka topic.&lt;/p&gt;
+&lt;p&gt;Let’s also use JPA for our discussions here. Spring Cloud Stream applications are Boot applications, and you can include the spring-boot-starter-jpa dependency in the application and include the appropriate spring.jpa.* properties to drive the necessary autoconfiguration. The assumption is that Spring Boot will autoconfigure a &lt;code&gt;JPATransactionManager&lt;/code&gt; for us.&lt;/p&gt;
+&lt;p&gt;Let us break down our use cases into various scenarios.&lt;/p&gt;
+&lt;h2 id=&quot;scenario-1-producer-initiated-transactions&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#scenario-1-producer-initiated-transactions&quot; aria-label=&quot;scenario 1 producer initiated transactions permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Scenario 1: Producer-initiated transactions&lt;/h2&gt;
+&lt;p&gt;In the producer-initiated scenario, we have two operations that we must do transactionally: a database operation followed by a Kafka publishing operation. Here is the basic idea. Keep in mind that this code shows only the crux of what is involved. In real-world settings, the code will almost certainly be much more complex than this.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Autowired
+Sender sender;
+
+@PostMapping(&quot;/send-data&quot;)
+public void sendData() {
+   sender.send(streamBridge, repository);
+}
+
+@Component
+static class Sender {
+
+   @Transactional
+   public void send(StreamBridge streamBridge, PersonRepository repository) {
+       Person person = new Person();
+       person.setName(&quot;Some Person&quot;);
+
+       Person savedPerson = repository.save(person);
+
+       PersonEvent event = new PersonEvent();
+       event.setName(savedPerson.getName());
+       event.setType(&quot;PersonSaved&quot;);
+       streamBridge.send(&quot;process-out-0&quot;, event);
+   }
+}
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The above producer-initiated code is fully transactional. In the previous part of this blog, we saw that more than adding just the &lt;code&gt;Transactional&lt;/code&gt; annotation is needed if you only have a Kafka transaction. As discussed, the &lt;code&gt;Transactional&lt;/code&gt; annotation did not have a transaction manager, and we needed a custom transaction manager that uses the same underlying transactional resources to achieve transactionality. Here, however, the situation is different. We have the &lt;code&gt;JpaTransactionManager&lt;/code&gt; autoconfigured by Spring Boot, and the transaction interceptor uses that to start a transaction. Since we have the &lt;strong&gt;transaction-id-prefix&lt;/strong&gt; configured, the &lt;code&gt;StreamBridge&lt;/code&gt; send operation can be done transactionally. However, &lt;code&gt;KafkaTemplate&lt;/code&gt; synchronizes the Kafka transaction with the already existing JPA transaction through the &lt;code&gt;TransactionSynchronizationManager&lt;/code&gt;. Upon method exit, the primary transaction is committed first, followed by the synchronized transactions, which, in this case, is the Kafka transaction.&lt;/p&gt;
+&lt;h5 id=&quot;the-following-is-the-sequence-in-this-flow&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#the-following-is-the-sequence-in-this-flow&quot; aria-label=&quot;the following is the sequence in this flow permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;The following is the sequence in this flow.&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;The JPA transaction manager starts a new JPA transaction.&lt;/li&gt;
+&lt;li&gt;The database operation commences, but no commit occurs here since we are still in the method execution.&lt;/li&gt;
+&lt;li&gt;The &lt;code&gt;StreamBridge&lt;/code&gt; send operation triggers a new Kafka transaction, synchronizing with the JPA transaction through the transaction synchronization manager.&lt;/li&gt;
+&lt;li&gt;When the method exits, the JPA transaction is committed first, followed by the Kafka transaction.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;A general note on synchronizing transactions in Spring:&lt;/strong&gt; It might sound like it is doing complex transaction synchronization behind the scenes. However, as we implied at the opening of this article, there is no distributed transaction synchronization going on here, let alone any intelligent ways to synchronize between the various transactions. The transactions themselves do not know anything about the synchronization. The Spring &lt;code&gt;TransactionSynchronizatonManager&lt;/code&gt; simply coordinates the commits and rollbacks of multiple transactions. Synchronizing transactions in this context is functionally similar to nesting two or more &lt;code&gt;@Transactional&lt;/code&gt; methods or &lt;code&gt;TransactionTempate&lt;/code&gt; objects. There is less to configure because Spring does the nesting for you.&lt;/p&gt;
+&lt;h2 id=&quot;scenario-2-reversing-the-order-of-commits&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#scenario-2-reversing-the-order-of-commits&quot; aria-label=&quot;scenario 2 reversing the order of commits permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Scenario 2: Reversing the Order of Commits&lt;/h2&gt;
+&lt;p&gt;Suppose we need to reverse the order of commits due to some new requirements in the flow, with the Kafka transaction getting committed first instead of the JPA one. How do we do that? One solution that might intuitively come to us is to explicitly provide a Kafka transaction manager to the &lt;code&gt;@Transactional&lt;/code&gt; annotation and let the JPA transaction synchronize with the Kafka transaction, which is the primary one. The code looks like the following:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Transactional(“customKafkaTransactionManager)
+public void send(StreamBridge streamBridge, PersonRepository repository) {
+    Person person = new Person();
+    person.setName(&quot;Some Person&quot;);
+
+    Person savedPerson = repository.save(person);
+
+    PersonEvent event = new PersonEvent();
+    event.setName(savedPerson.getName());
+    event.setType(&quot;PersonSaved&quot;);
+    streamBridge.send(&quot;process-out-0&quot;, event);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;We need to provide a custom Kafka transaction manager:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Bean
+KafkaTransactionManager customKafkaTransactionManager() {
+   KafkaMessageChannelBinder kafka = (KafkaMessageChannelBinder) this.binderFactory.getBinder(&quot;kafka&quot;, MessageChannel.class);
+   ProducerFactory&amp;#x3C;byte[], byte[]&gt; transactionalProducerFactory = kafka.getTransactionalProducerFactory();
+   KafkaTransactionManager kafkaTransactionManager = new KafkaTransactionManager(transactionalProducerFactory);
+   return kafkaTransactionManager;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Since Spring Boot does not configure a transaction manager if it detects one already present, we must configure the JPA transaction manager ourselves:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Bean
+public PlatformTransactionManager transactionManager(
+       ObjectProvider&amp;#x3C;TransactionManagerCustomizers&gt; transactionManagerCustomizers) {
+   JpaTransactionManager transactionManager = new JpaTransactionManager();
+   transactionManagerCustomizers.ifAvailable((customizers) -&gt; customizers.customize(transactionManager));
+   return transactionManager;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Did our intuition work here? Have we successfully changed the order of applying transactions? Unfortunately, no. It does not work, because the JPA transaction manager does not let its transaction synchronize with other transactions, such as the one from the primary transaction manager in this case (the custom Kafka transaction manager). In our case, although we made a custom Kafka transaction manager to be the primary one, the JPA transaction starts and commits by itself without synchronizing with the primary upon executing the repository save method.&lt;/p&gt;
+&lt;h5 id=&quot;the-order-of-events-in-this-flow-is-as-follows&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#the-order-of-events-in-this-flow-is-as-follows&quot; aria-label=&quot;the order of events in this flow is as follows permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;The order of events in this flow is as follows&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;The Kafka transaction manager starts a new transaction that the interceptor uses.&lt;/li&gt;
+&lt;li&gt;When the repository save method executes, a JPA transaction is created by the JpaTransactionManager without synchronizing with the primary transaction.&lt;/li&gt;
+&lt;li&gt;The JPA transaction commits while still within the method execution.&lt;/li&gt;
+&lt;li&gt;The interceptor will commit the Kafka transaction upon exiting the method.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;How can we reverse the transactions, then? There are two ways to do this.&lt;/p&gt;
+&lt;p&gt;First, we can try chaining the transaction managers. &lt;a href=&quot;https://docs.spring.io/spring-data/commons/docs/current/api/org/springframework/data/transaction/ChainedTransactionManager.html&quot;&gt;ChainedTransactionManager&lt;/a&gt; is a transaction manager implementation from the &lt;a href=&quot;https://spring.io/projects/spring-data&quot;&gt;Spring Data&lt;/a&gt; project. You can specify the list of transaction managers to the &lt;code&gt;ChainedTransactionManager&lt;/code&gt;, and it starts the transaction in the order of transaction managers in its list. On the way out (that is, when the method exits), the transactions are committed in the reverse order of the list of transaction managers.&lt;/p&gt;
+&lt;p&gt;While this sounds like a reasonable strategy, one big caveat to keep in mind is that &lt;code&gt;ChainedTransactionManager&lt;/code&gt; is currently deprecated and not a recommended option. The reason for the deprecation is in the &lt;a href=&quot;https://docs.spring.io/spring-data/commons/docs/current/api/org/springframework/data/transaction/ChainedTransactionManager.html&quot;&gt;Javadoc&lt;/a&gt;. The gist is that people often expect the &lt;code&gt;ChainedTransactionManager&lt;/code&gt; to be a magical silver bullet that solves all the transactional issues, including distributed transactions with two-phase commits and other issues, while this couldn’t be further away from the truth. &lt;code&gt;ChainedTransactionManager&lt;/code&gt; ensures only that the transactions are started and committed in a particular order. It doesn&apos;t guarantee any transaction synchronization, let alone any distributed transaction coordination. Suppose you are comfortable with the limitations of &lt;code&gt;ChainedTransactionManager&lt;/code&gt; and want a particular order, as our use case requires. In that case, it is reasonable to use this transaction manager as long as you remember that you are using a deprecated class from the framework.&lt;/p&gt;
+&lt;p&gt;Let us try &lt;code&gt;ChainedTransactionManager&lt;/code&gt; in our scenario and see how it goes. Spring for Apache Kafka provides a subclass called ChainedKafkaTransactionManager, which is also deprecated because the parent class is deprecated.&lt;/p&gt;
+&lt;p&gt;We use the same custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt; bean that we saw before in the chained transactions.&lt;/p&gt;
+&lt;p&gt;We also need to create the &lt;code&gt;JpaTransactionManager&lt;/code&gt; bean, as before, since Spring Boot does not auto-configure it, because it already detects the custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt; bean.&lt;/p&gt;
+&lt;p&gt;Once we add those two beans, let’s create the &lt;code&gt;ChainedKafkaTransactionManager&lt;/code&gt; bean:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Bean
+public ChainedKafkaTransactionManager chainedKafkaTransactionManager(KafkaTransactionManager kafkaTransactionManager, PlatformTransactionManager transactionManager) {
+   return new ChainedKafkaTransactionManager(jpaTransactionManager, kafkaTransactionManager);
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;With these in place, let’s modify our Transactional annotation:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Transactional(&quot;chainedKafkaTransactionManager&quot;)
+public void send(StreamBridge streamBridge, PersonRepository repository) {
+..
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The above configuration accomplishes the result we want. When you run this application, we reverse the transactions, as expected - that is, Kafka will commit first, followed by the JPA.&lt;/p&gt;
+&lt;h5 id=&quot;here-are-the-steps-in-the-flow&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#here-are-the-steps-in-the-flow&quot; aria-label=&quot;here are the steps in the flow permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Here are the steps in the flow&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;TransactionInterceptor uses the custom &lt;code&gt;ChainedKafkaTransactionManager&lt;/code&gt; to start the transaction. It starts the  Jpa transaction using the &lt;code&gt;JpaTransactionManager&lt;/code&gt; and does the same for the &lt;code&gt;KafkaTransactionManager&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;When the method calls the database operation, since it already runs within a JPA transaction, it doesn’t start another one. No commit or rollback occurs here since this is not a new transaction.&lt;/li&gt;
+&lt;li&gt;Next, the method performs the Kafka publishing through &lt;code&gt;StreamBridge&lt;/code&gt;. We see the same deal here as we saw for JPA, above. Since there is an already existing Kafka transaction, it does not start a new Kafka transaction. The &lt;code&gt;StreamBridge&lt;/code&gt; send operation occurs by using the same transactional producer factory that was used by the initial Kafka transaction. No commits or rollbacks occur here.&lt;/li&gt;
+&lt;li&gt;When the method exits, the chained transaction manager goes in reverse order, starting with the Kafka transaction commit (or rolling back), followed by the JPA one.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;If you are comfortable with the limitations of the chained transaction manager, this approach works. Remember that there is no transaction synchronization here. The transaction managers are applied in the order given when the transactions begin and reverse order on the way out when committing or rolling back. If you are going with this route, since you are using deprecated classes in the framework, copying them and using them in your project will be a good idea rather than relying on the framework. Since they are deprecated, no new features and bug fixes are guaranteed. A future version can drop them altogether. It is also possible that this may never be removed and that the deprecation status is present to discourage its use (due to people thinking it has greater functionality than it really does).&lt;/p&gt;
+&lt;p&gt;If you do not want to rely on deprecated classes from the framework or do not want to copy them and maintain them on your end, you have another option to try. You can create two transactional methods and nest the calls. Here is a blueprint for that idea:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Component
+static class Sender {
+
+       @Transactional(&quot;jpaTransactionManager&quot;)
+       public void send(StreamBridge streamBridge, PersonRepository repository, KafkaSender kafkaSender) {
+           Person person = new Person();
+           person.setName(&quot;Some Person&quot;);
+
+           Person savedPerson = repository.save(person);
+
+           PersonEvent event = new PersonEvent();
+           event.setName(savedPerson.getName());
+           event.setType(&quot;PersonSaved&quot;);
+           kafkaSender.send(streamBridge, event);
+       }
+}
+
+@Component
+static class KafkaSender {
+       @Transactional(&quot;customKafkaTransactionManager&quot;)
+       public void send(StreamBridge streamBridge, PersonEvent event) {
+           streamBridge.send(&quot;process-out-0&quot;, event);
+       }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Ensure that the nested call is in a different class for the reasons we went through in &lt;a href=&quot;https://spring.io/blog/2023/09/28/producer-initiated-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;part 2&lt;/a&gt; of this blog series, because of how AOP proxying works in Spring.&lt;/p&gt;
+&lt;p&gt;Both methods, in this case, are transactional, and they are nested. When the transaction interceptor intercepts the first method call, it starts the JPA transaction. In the middle of the execution, the nested call (whose method also has the &lt;code&gt;@Transactional&lt;/code&gt; annotation) comes in. Since this bean method has the &lt;code&gt;@Transactional&lt;/code&gt; annotation, Spring AOP wraps the bean in an AOP advice. Because we call this advised bean from another bean in a different class, the proxy mechanism properly invokes the advised bean. Another transaction interceptor starts a new transaction by using a different transaction manager (that is, the &lt;code&gt;KafkaTransactionManager&lt;/code&gt;). When Kafka publishing occurs, the transaction does not immediately commit or roll back, since the transaction started as part of the method, and the commit or roll-back happens when the method exits. At that point, the control returns to the first method and continues. Once it exits the original method, the JPA transaction is committed through the interceptor. If the method that publishes to Kafka throws an exception, it rolls back that transaction. In that case, after rolling back, the exception propagates back to the first transactional method (the JPA one), which also rolls back its transaction due to the exception.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;An important note when using this technique&lt;/strong&gt;  The call to the nested method should be the last thing the first method does because, if the first method fails to execute some code after the Kafka call, which went successfully, the Kafka transaction has already been committed. The failure in the first method does not automatically roll back the Kafka transaction.&lt;/p&gt;
+&lt;h2 id=&quot;scenario-3-consume-process-produce&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#scenario-3-consume-process-produce&quot; aria-label=&quot;scenario 3 consume process produce permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Scenario 3: Consume-Process-Produce&lt;/h2&gt;
+&lt;p&gt;With the core understanding we gained about transactions in this series so far, let’s look at a crucial pattern in event-driven and streaming applications called the &lt;strong&gt;consume-process-produce&lt;/strong&gt; pattern. In Spring Cloud Stream, an implementation of such a pattern looks as follows:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Bean
+public Function&amp;#x3C;PersonEvent, PersonEvent&gt; process(TxCode txCode) {
+  return pe -&gt; txCode.run(pe);
+}
+
+@Component
+class TxCode {
+
+   @Transactional
+   PersonEvent run(PersonEvent pe) {
+       Person person = new Person();
+       person.setName(pe.getName());
+
+       Person savedPerson = repository.save(person);
+
+       PersonEvent event = new PersonEvent();
+       event.setName(savedPerson.getName());
+       event.setType(&quot;PersonSaved&quot;);
+       return event;
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;We have a Spring Cloud Stream function that consumes &lt;code&gt;PersonEvent&lt;/code&gt; from an input topic and then calls a function to process in the body of the function’s lambda expression. This function returns another &lt;code&gt;PersonEvent&lt;/code&gt;, which we publish to the outbound Kafka topic. If we are not in a transactional context, we can inline the &lt;code&gt;run&lt;/code&gt; method above as part of the function’s lambda expression. However, to achieve transactional semantics, the &lt;code&gt;@Transactional&lt;/code&gt; annotation must be on a method in a different class.&lt;/p&gt;
+&lt;p&gt;To make the binder transactional, make sure that you provide the &lt;code&gt;spring.cloud.stream.kafka.binder.transaction.transaction-id-prefix&lt;/code&gt; with a valid value.&lt;/p&gt;
+&lt;p&gt;Is the code above fully transactional? The reality, however, is that it is only partially transactional end-to-end. Let’s look at the sequence of events.&lt;/p&gt;
+&lt;p&gt;The binder is transactional, because we provide the &lt;code&gt;transaction-id-prefix&lt;/code&gt;. When the consumer polls for the records in the message listener container, it invokes the internal listener method within its &lt;code&gt;TrasactionTemplate#execute&lt;/code&gt; method. Therefore, the whole end-to-end process of executing the listener method (which invokes the user method) runs within a transaction started by the &lt;code&gt;KafkaTransactionManager&lt;/code&gt;. When the transaction starts, the &lt;code&gt;TransactionSynchronizationManager&lt;/code&gt; binds the resources (the producer) to the transaction. When the user method (the method annotated with &lt;code&gt;@Transactional&lt;/code&gt;) gets called, the transaction interceptor intercepts that call, letting the wrapped AOP advice take care of the actual invocation. Because we have a &lt;code&gt;JpaTransactionManager&lt;/code&gt;, the transaction interceptor uses that manager and starts a new transaction. It is up to each transaction manager implementation to decide whether it wants to synchronize with an existing transaction. In the case of JpaTransactionManager (and many other similar database transaction manager implementations), it does not allow synchronization with an existing transaction as we already discussed above. Therefore, the JPA transaction runs independently, as seen in the above sections. When the run method exits, the transaction interceptor does a commit or rollback operation by using the JPA transaction manager. With that, the JPA transaction manager finishes its job. At this point, the response from the method invocation goes back to the caller, which is the Spring Cloud Stream infrastructure. This mechanism in Spring Cloud Stream takes this response and sends it to the outbound topic in Kafka. It uses the same transactional producer bound when the initial transaction began. After sending the record, the control returns to the message listener container, which then commits or rolls back the transaction.&lt;/p&gt;
+&lt;h5 id=&quot;here-are-the-steps-in-this-sequence&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#here-are-the-steps-in-this-sequence&quot; aria-label=&quot;here are the steps in this sequence permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Here are the steps in this sequence&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;The Kafka consumer receives the record.&lt;/li&gt;
+&lt;li&gt;The container in Spring Kafka invokes the listener by using the &lt;code&gt;execute&lt;/code&gt; method of the &lt;code&gt;TransactionTemplate&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;KafkaTransactionManager starts a new transaction.
+3. The Kafka resources are bound (producer).
+4. When it reaches the user code, the transaction interceptor eventually intercepts that call and starts a new JPA transaction.
+5. The AOP proxy then invokes the actual method.
+When the method exits, the &lt;code&gt;JpaTransactionManager&lt;/code&gt; commits or rolls back.
+6. The method’s output returns to the caller in Spring Cloud Stream.
+7. The response is then sent to Kafka outbound using the same transactional resource from step 4.
+8. The control returns to the message listener container and the &lt;code&gt;KafkaTransactionManager&lt;/code&gt; commits or rolls back.&lt;/p&gt;
+&lt;p&gt;So, what is the issue here? It looks transactional, but, in reality, it is only partially so. The main problem at the outset is that the whole end-to-end process is outside the bounds of a single atomic transaction, which is a significant issue. There are two transactions here - Kafka and JPA - and there is no synchronization between the JPA and Kafka transactions. If the database transaction got committed and the Kafka sending failed, there is no way to roll back the JPA transaction.&lt;/p&gt;
+&lt;p&gt;We might think that &lt;code&gt;ChainedTransactionManager&lt;/code&gt; could help here. While that intuition has some merits, it doesn’t work with the above code. Because of the Kafka transaction created in the container while invoking the listener method, &lt;code&gt;ChainedTransactionManager&lt;/code&gt; will not create any new Kafka transactions from any Kafka transaction managers provided to it. We still have a single JPA transaction to commit or roll back when exiting the user method. The Kafka transaction must wait until the call returns to the container to commit or rollback.&lt;/p&gt;
+&lt;p&gt;The problem is that we use a function in Spring Cloud Stream that enables the framework to publish to Kafka. In our case, any user-specified transactions, such as the JPA one, occur before Spring Cloud Stream does the Kafka publishing. We need to ensure that the user code is the one that publishes to Kafka so that we can treat the entire transactional code as one unit. To achieve this, we should switch to a &lt;code&gt;Consumer&lt;/code&gt; instead of a &lt;code&gt;Function&lt;/code&gt; and then use the &lt;code&gt;StreamBridge&lt;/code&gt; API to publish to Kafka. Look at this modified code:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Bean
+public Consumer&amp;#x3C;PersonEvent&gt; process(TxCode txCode) {
+   return txCode::run;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Then we use the same TxCode as above:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Component
+class TxCode {
+
+   @Transactional
+   void run(PersonEvent pe) {
+       Person person = new Person();
+       person.setName(pe.getName());
+
+       Person savedPerson = repository.save(person);
+
+       PersonEvent event = new PersonEvent();
+       event.setName(savedPerson.getName());
+       event.setType(&quot;PersonSaved&quot;);
+       streamBridge.send(&quot;process-out-0&quot;, event);
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Notice that the run method does not return anything, but we explicitly send to the outbound Kafka topic through the &lt;code&gt;StreamBridge&lt;/code&gt; API.&lt;/p&gt;
+&lt;h5 id=&quot;lets-look-at-the-sequence-of-events-with-these-changes&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#lets-look-at-the-sequence-of-events-with-these-changes&quot; aria-label=&quot;lets look at the sequence of events with these changes permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Let’s look at the sequence of events with these changes&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;The Kafka consumer receives the record.&lt;/li&gt;
+&lt;li&gt;The container in Spring Kafka invokes the listener by using the execute method of the TransactionTemplate.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;KafkaTransactionManager&lt;/code&gt; starts a new transaction.&lt;/li&gt;
+&lt;li&gt;The Kafka resources are bound (producer).&lt;/li&gt;
+&lt;li&gt;When it gets to the user code, the interceptor intercepts that call and starts a new transaction by using the &lt;code&gt;JpaTransactionManager&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;The actual user method is invoked.&lt;/li&gt;
+&lt;li&gt;The Kafka send operation is made through &lt;code&gt;StreamBridge&lt;/code&gt; as part of the method execution. The underlying KafkaTemplate uses the same transactional producer factory bound in step 4.&lt;/li&gt;
+&lt;li&gt;When the method exits, &lt;code&gt;JpaTransactionManager&lt;/code&gt; commits or rolls back.&lt;/li&gt;
+&lt;li&gt;Finally, the control returns to the &lt;code&gt;TransactionTemplate#execute&lt;/code&gt; method when the Kafka transaction is committed (or rolled back).&lt;/li&gt;
+&lt;li&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Pay special attention to step 7 above. When &lt;code&gt;KafkaTemplate&lt;/code&gt; detects that there is already a Kafka transaction in progress (begun in step 3), it does not synchronize with the JPA transaction, although the &lt;code&gt;KafkaTemplate&lt;/code&gt; is capable of doing so. The existing Kafka transaction gets precedence, and it joins that transaction.&lt;/p&gt;
+&lt;p&gt;Even though we still have two separate transactions, things are atomic from an end-to-end transactional standpoint. If the Kafka publishing operation through &lt;code&gt;StreamBridge&lt;/code&gt; fails, neither JPA nor Kafka transactions perform a commit operation. Both will roll back. Similarly, both transactions still roll back if the database operation fails. However, there is always the possibility that one transaction commits and the other rolls back, so the application code must handle the de-duplication of the records to be fault-tolerant.&lt;/p&gt;
+&lt;p&gt;Another crucial component in this discussion of the &lt;strong&gt;consume-process-produce&lt;/strong&gt; pattern is that the producer needs to send the consumed record’s offset (in addition to the consumer that commits the offset) to the transaction. As we saw in the &lt;a href=&quot;https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;first part&lt;/a&gt; of this blog series, there is a Kafka Producer API method called &lt;code&gt;sendOffsetToTransaction&lt;/code&gt; in which the producer sends an offset (the current message’s offset + 1) for each partition through the &lt;code&gt;OffsetMetadata&lt;/code&gt; and the &lt;code&gt;ConsumerGroupMetadata&lt;/code&gt;. The applications do not need to call this low-level operation when using &lt;strong&gt;Spring Cloud Stream&lt;/strong&gt; or &lt;strong&gt;Spring for Apache Kafka&lt;/strong&gt;. The Kafka message listener container in Spring for Apache Kafka handles it automatically on behalf of the application. Although the framework calls &lt;code&gt;sendOffsetToTransaction&lt;/code&gt; on the producer before the transaction commits, sending the offsets to the transaction and the actual consumer offset commit occur atomically when the transaction coordinator commits the transaction.&lt;/p&gt;
+&lt;p&gt;With this discussion, we ventured into the various options for writing transactional Spring Cloud Stream applications that must interact with external transactional systems, such as databases, while consuming and producing to Apache Kafka.&lt;/p&gt;
+&lt;p&gt;In the next part of the series, we will look at transaction rolling back (another critical aspect when writing transactional systems) and how we can access the various Spring components while writing Spring Cloud Stream Kafka applications.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Spring Shell 2.1.13, 3.0.8 and 3.1.4 are now available]]></title><link>https://spring.io/blog/2023/10/04/spring-shell-2-1-13-3-0-8-and-3-1-4-are-now-available</link><guid isPermaLink="true">https://spring.io/blog/2023/10/04/spring-shell-2-1-13-3-0-8-and-3-1-4-are-now-available</guid><dc:creator><![CDATA[Janne Valkealahti]]></dc:creator><pubDate>Wed, 04 Oct 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Spring Shell 2.1.13, 3.0.8 and 3.1.4 are now available&lt;/p&gt;
+&lt;p&gt;On behalf of the team and everyone who has contributed, I&apos;m happy to announce that Spring Shell &lt;code&gt;2.1.13&lt;/code&gt;, &lt;code&gt;3.0.8&lt;/code&gt; and &lt;code&gt;3.1.4&lt;/code&gt; has been released and are now available from Maven Central.&lt;/p&gt;
+&lt;p&gt;Please see the &lt;a href=&quot;https://github.com/spring-projects/spring-shell/releases/tag/v2.1.13&quot;&gt;release notes 2.1.13&lt;/a&gt;, &lt;a href=&quot;https://github.com/spring-projects/spring-shell/releases/tag/v3.0.8&quot;&gt;release notes 3.0.8&lt;/a&gt; and &lt;a href=&quot;https://github.com/spring-projects/spring-shell/releases/tag/v3.1.4&quot;&gt;release notes 3.1.4&lt;/a&gt; for more details.&lt;/p&gt;
+&lt;p&gt;Thanks to all those who have contributed with issue reports and pull requests.&lt;/p&gt;
+&lt;h3 id=&quot;how-can-you-help&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#how-can-you-help&quot; aria-label=&quot;how can you help permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;How can you help?&lt;/h3&gt;
+&lt;p&gt;&lt;a href=&quot;https://spring.io/projects/spring-shell/&quot;&gt;Project Page&lt;/a&gt; | &lt;a href=&quot;https://github.com/spring-projects/spring-shell&quot;&gt;GitHub&lt;/a&gt; | &lt;a href=&quot;https://github.com/spring-projects/spring-shell/issues&quot;&gt;Issues&lt;/a&gt; | &lt;a href=&quot;https://docs.spring.io/spring-shell/docs/3.1.4/docs/index.html&quot;&gt;Documentation&lt;/a&gt;&lt;/p&gt;</content:encoded></item><item><title><![CDATA[This Week in Spring - October 3rd, 2023]]></title><link>https://spring.io/blog/2023/10/03/this-week-in-spring-october-3rd-2023</link><guid isPermaLink="true">https://spring.io/blog/2023/10/03/this-week-in-spring-october-3rd-2023</guid><dc:creator><![CDATA[Josh Long]]></dc:creator><pubDate>Tue, 03 Oct 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Hi Spring fans! Welcome to another installment of &lt;em&gt;This Week in Spring&lt;/em&gt;! How&apos;re you doin&apos;? I&apos;ve just flown in from Singapore - where I was keynoting and presenting at SpringOne Singapore - and am now in Antwerp, Belgium for the deliriously fun Devoxx Belgium show. I&apos;ve missed this show, and it&apos;s a true pleasure to be back here! Next week, I&apos;ll be in Amsterdam, just next door, for the SpringOne Tour Amsterdam. If you&apos;re there, come out and say hi!&lt;/p&gt;
+&lt;p&gt;We&apos;ve got a lot of stuff to look at this morning, so let&apos;s dive right into it.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2023/09/28/a-bootiful-podcast-spring-ai-lead-dr-mark-pollack&quot;&gt;A Bootiful Podcast: Spring AI lead Dr. Mark Pollack&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=bbzek2j3Yz0&quot;&gt;Building a ChatGPT clone with Spring Boot, LangChain, and React in 20 minutes&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://medium.com/@anilfromdit/dockerize-your-spring-boot-app-like-a-pro-d1dd0ef37b79&quot;&gt;Dockerize Your Spring Boot App Like a Pro&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Hah. This is fun! &lt;a href=&quot;https://www.youtube.com/watch?v=0QVdJcxGf1M&quot;&gt;Generate Dynamic Websites using ChatGPT and Spring AI&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;a new release of &lt;a href=&quot;https://github.com/toedter/spring-hateoas-jsonapi&quot;&gt;GitHub - toedter/spring-hateoas-jsonapi: A JSON:API media type implementation for Spring HATEOAS&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=74AEVZOBL88&quot;&gt;How To Log Outgoing HTTP Requests with Spring Rest Client and Spring Boot 3&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;Introduction to Transactions in Spring Cloud Stream Kafka Applications&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2023/09/29/spring-cloud-2023-0-0-m2-aka-leyton-has-been-released&quot;&gt;Spring Cloud 2023.0.0-M2 (aka Leyton) has been released&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://x.com/jimgris/status/1707824816835932410?s=12&amp;#x26;t=n-UflcIbnx1lage-TBk0Cg&quot;&gt;I&apos;ll be in Switzerland next week as well, and one of the people I am most looking forward to seeing is my friend Sam Brannen, major contributor to the JUnit project and lead of the Spring testing efforts. If you can&apos;t be there with us, you should enjoy this wonderful discussion between him and Oracle&apos;s Jim Grisanzio&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://x.com/odrotbohm/status/1707038889909641224?s=12&amp;#x26;t=n-UflcIbnx1lage-TBk0Cg&quot;&gt;this is super cool: Spring Modulith made it into the Thoughtworks Technology Radar&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://kubernetes.io/blog/2023/10/02/steering-committee-results-2023/&quot;&gt;Blog: Announcing the 2023 Steering Committee Election Results&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://kubernetes.io/blog/2023/09/26/happy-7th-birthday-kubeadm/&quot;&gt;Blog: Happy 7th Birthday kubeadm!&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Spring Cloud 2023.0.0-M2 (aka Leyton) has been released]]></title><link>https://spring.io/blog/2023/09/29/spring-cloud-2023-0-0-m2-aka-leyton-has-been-released</link><guid isPermaLink="true">https://spring.io/blog/2023/09/29/spring-cloud-2023-0-0-m2-aka-leyton-has-been-released</guid><dc:creator><![CDATA[Olga Maciaszek-Sharma]]></dc:creator><pubDate>Fri, 29 Sep 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;On behalf of the community, I am pleased to announce that the Milestone 2 (M2) of the &lt;a href=&quot;https://cloud.spring.io&quot;&gt;Spring Cloud 2023.0&lt;/a&gt; Release Train is available today. The release can be found in &lt;a href=&quot;https://repo.spring.io/milestone/&quot;&gt;Spring Milestone&lt;/a&gt; repository. You can check out the 2023.0 &lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-release/wiki/Spring-Cloud-2023.0-Release-Notes&quot;&gt;release notes for more information&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;notable-changes-in-the-202300-m2-release-train&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#notable-changes-in-the-202300-m2-release-train&quot; aria-label=&quot;notable changes in the 202300 m2 release train permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Notable Changes in the 2023.0.0-M2 Release Train&lt;/h2&gt;
+&lt;p&gt;In this milestone, we have migrated the documentation of all the Spring Cloud projects to Antora.&lt;/p&gt;
+&lt;p&gt;See all issues and pull requests &lt;a href=&quot;https://github.com/orgs/spring-cloud/projects/117/views/1&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;h3 id=&quot;spring-cloud-commons&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-cloud-commons&quot; aria-label=&quot;spring cloud commons permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring Cloud Commons&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Refresh Scope on restart - a feature tailored to allow adapting to environment changes on JVM Checkpoint-Restart (&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-commons/pull/1266&quot;&gt;PR 1266&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;spring-cloud-gateway&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-cloud-gateway&quot; aria-label=&quot;spring cloud gateway permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring Cloud Gateway&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Specify &lt;code&gt;clientRegistrationId&lt;/code&gt; in &lt;code&gt;TokenRelay&lt;/code&gt; filter. (&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-gateway/pull/2922&quot;&gt;PR 2922&lt;/a&gt;) The gateway can be used to manage many ClientRegistrations, and each route can determine which client registration to use. This is incredibly useful in scenarios where there are (for example):
+&lt;ul&gt;
+&lt;li&gt;multiple authorization servers in use simultaneously.&lt;/li&gt;
+&lt;li&gt;multiple client authentication methods in use simultaneously.&lt;/li&gt;
+&lt;li&gt;some/all downstream services require a distinct clientId, aud claim, etc.&lt;/li&gt;
+&lt;li&gt;some/all downstream services require different token formats (e.g. JWT, opaque)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;spring-cloud-openfeign&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-cloud-openfeign&quot; aria-label=&quot;spring cloud openfeign permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring Cloud OpenFeign&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Upgraded to Feign 12.5 (&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-openfeign/pull/907&quot;&gt;PR_907&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;spring-cloud-task&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-cloud-task&quot; aria-label=&quot;spring cloud task permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring Cloud Task&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Users now have the ability to query for task executions using the external execution id. (&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-task/issues/863&quot;&gt;PR_863&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;spring-cloud-function&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-cloud-function&quot; aria-label=&quot;spring cloud function permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring Cloud Function&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Users now have the ability to deploy REST applications as &lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-function/tree/main/spring-cloud-starter-function-web&quot;&gt;AWS Lambdas or Azure Functions&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;CRUD mappings for functions deployed as REST endpoints via &lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-function/issues/1025&quot;&gt;spring-cloud-function-web&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;spring-cloud-stream&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-cloud-stream&quot; aria-label=&quot;spring cloud stream permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring Cloud Stream&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Several important &lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-stream/milestone/89?closed=1&quot;&gt;bug fixes and enhancements&lt;/a&gt; primarily related to Apache Kafka binders and new Apache Pulsar binder.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The following modules were updated as part of 2023.0.0-M2:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Module&lt;/th&gt;
+&lt;th&gt;Version&lt;/th&gt;
+&lt;th&gt;Issues&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Consul&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-consul/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Gateway&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-gateway/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Zookeeper&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-zookeeper/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Bus&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-bus/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Stream&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-stream/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Function&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-function/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud OpenFeign&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-openfeign/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Vault&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-vault/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Commons&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-commons/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Task&lt;/td&gt;
+&lt;td&gt;3.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-task/releases/tag/v3.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Kubernetes&lt;/td&gt;
+&lt;td&gt;3.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-kubernetes/releases/tag/v3.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Starter Build&lt;/td&gt;
+&lt;td&gt;2023.0.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-starter-build/releases/tag/v2023.0.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Config&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-config/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Build&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-build/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Netflix&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-netflix/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud CircuitBreaker&lt;/td&gt;
+&lt;td&gt;3.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-circuitbreaker/releases/tag/v3.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Contract&lt;/td&gt;
+&lt;td&gt;4.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-contract/releases/tag/v4.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Spring Cloud Task&lt;/td&gt;
+&lt;td&gt;3.1.0-M2&lt;/td&gt;
+&lt;td&gt;(&lt;a href=&quot;https://github.com/spring-cloud/spring-cloud-contract/releases/tag/v3.1.0-M2&quot;&gt;issues&lt;/a&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;As always, we welcome feedback on &lt;a href=&quot;https://github.com/spring-cloud/&quot;&gt;GitHub&lt;/a&gt;, on &lt;a href=&quot;https://stackoverflow.com/questions/tagged/spring-cloud&quot;&gt;Stack Overflow&lt;/a&gt;, or on &lt;a href=&quot;https://twitter.com/SpringCloud&quot;&gt;Twitter&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;To get started with Maven with a BOM (dependency management only):&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-xml&quot;&gt;&amp;#x3C;repositories&gt;
+    &amp;#x3C;repository&gt;
+        &amp;#x3C;id&gt;spring-milestones&amp;#x3C;/id&gt;
+        &amp;#x3C;name&gt;Spring Milestones&amp;#x3C;/name&gt;
+        &amp;#x3C;url&gt;https://repo.spring.io/milestone&amp;#x3C;/url&gt;
+        &amp;#x3C;snapshots&gt;
+            &amp;#x3C;enabled&gt;false&amp;#x3C;/enabled&gt;
+        &amp;#x3C;/snapshots&gt;
+    &amp;#x3C;/repository&gt;
+&amp;#x3C;/repositories&gt;
+&amp;#x3C;dependencyManagement&gt;
+    &amp;#x3C;dependencies&gt;
+        &amp;#x3C;dependency&gt;
+            &amp;#x3C;groupId&gt;org.springframework.cloud&amp;#x3C;/groupId&gt;
+            &amp;#x3C;artifactId&gt;spring-cloud-dependencies&amp;#x3C;/artifactId&gt;
+            &amp;#x3C;version&gt;2023.0.0-M2&amp;#x3C;/version&gt;
+            &amp;#x3C;type&gt;pom&amp;#x3C;/type&gt;
+            &amp;#x3C;scope&gt;import&amp;#x3C;/scope&gt;
+        &amp;#x3C;/dependency&gt;
+    &amp;#x3C;/dependencies&gt;
+&amp;#x3C;/dependencyManagement&gt;
+&amp;#x3C;dependencies&gt;
+    &amp;#x3C;dependency&gt;
+        &amp;#x3C;groupId&gt;org.springframework.cloud&amp;#x3C;/groupId&gt;
+        &amp;#x3C;artifactId&gt;spring-cloud-starter-config&amp;#x3C;/artifactId&gt;
+    &amp;#x3C;/dependency&gt;
+    &amp;#x3C;dependency&gt;
+        &amp;#x3C;groupId&gt;org.springframework.cloud&amp;#x3C;/groupId&gt;
+        &amp;#x3C;artifactId&gt;spring-cloud-starter-netflix-eureka-client&amp;#x3C;/artifactId&gt;
+    &amp;#x3C;/dependency&gt;
+    ...
+&amp;#x3C;/dependencies&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;or with Gradle:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-groovy&quot;&gt;plugins {
+  id &apos;java&apos;
+  id &apos;org.springframework.boot&apos; version &apos;3.2.0-M3&apos;
+  id &apos;io.spring.dependency-management&apos; version &apos;1.1.3&apos;
+}
+
+group = &apos;com.example&apos;
+version = &apos;0.0.1-SNAPSHOT&apos;
+
+java {
+  sourceCompatibility = &apos;17&apos;
+}
+
+repositories {
+  mavenCentral()
+  maven { url &apos;https://repo.spring.io/milestone&apos; }
+}
+
+ext {
+  set(&apos;springCloudVersion&apos;, &quot;2023.0.0-M2&quot;)
+}
+
+dependencies {
+  implementation &apos;org.springframework.cloud:spring-cloud-starter-config&apos;
+  implementation &apos;org.springframework.cloud:spring-cloud-starter-netflix-eureka-client&apos;
+  testImplementation &apos;org.springframework.boot:spring-boot-starter-test&apos;
+}
+
+dependencyManagement {
+  imports {
+    mavenBom &quot;org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}&quot;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;</content:encoded></item><item><title><![CDATA[Producer Initiated Transactions in Spring Cloud Stream Kafka Applications]]></title><link>https://spring.io/blog/2023/09/28/producer-initiated-transactions-in-spring-cloud-stream-kafka-applications</link><guid isPermaLink="true">https://spring.io/blog/2023/09/28/producer-initiated-transactions-in-spring-cloud-stream-kafka-applications</guid><dc:creator><![CDATA[Soby Chacko]]></dc:creator><pubDate>Thu, 28 Sep 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;&lt;strong&gt;Other parts in this blog series&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Part 1: &lt;a href=&quot;https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;Introduction to Transactions in Spring Cloud Stream Kafka Applications&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;This article is part 2 of the blog series in which we look at transactions in detail with Spring Cloud Stream and Apache Kafka. We saw a general introduction to transactions in the &lt;a href=&quot;https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;previous part&lt;/a&gt;, touching on the fundamental ideas. In this part of the blog series, we get to the metal by seeing a few implementation details and their practical aspects.&lt;/p&gt;
+&lt;p&gt;In this article, we largely stay on the producer&apos;s side to understand how transactions work with Spring Cloud Stream and Apache Kafka.&lt;/p&gt;
+&lt;h2 id=&quot;producers-in-spring-cloud-stream&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#producers-in-spring-cloud-stream&quot; aria-label=&quot;producers in spring cloud stream permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Producers in Spring Cloud Stream&lt;/h2&gt;
+&lt;p&gt;Before we look deeper into producer-initiated transactions, let’s get to some basics by looking at a simple producer. In Spring Cloud Stream, there are a couple of ways to write a producer (also known as a publisher in the messaging domain). If you have a use case in which you need to produce data on a schedule, you can write a &lt;code&gt;java.util.function.Supplier&lt;/code&gt; method as shown below.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Bean
+public Supplier&amp;#x3C;Pojo&gt; mySupplier() {
+  return () -&gt; {
+        new Pojo();
+  };
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;When providing the above Supplier as a Spring bean, as indicated in the code, Spring Cloud Stream treats it as a publisher, and, since we are under the context of Apache Kafka here, it sends the POJO record to a Kafka topic.&lt;/p&gt;
+&lt;p&gt;By default, Spring Cloud Stream invokes the supplier once each second, but you can change that schedule through configuration. See the &lt;a href=&quot;https://docs.spring.io/spring-cloud-stream/docs/current/reference/html/spring-cloud-stream.html#_polling_configuration_properties&quot;&gt;refence docs&lt;/a&gt; fore more details.&lt;/p&gt;
+&lt;p&gt;What if you don’t want to poll the supplier but want to control how often it publishes? Spring Cloud Stream provides a convenient way through the &lt;code&gt;StreamOperations&lt;/code&gt; API with its out-of-the-box implementation called &lt;code&gt;StreamBridge&lt;/code&gt;. Here is an example.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Autowired
+StreamBridge streamBridge;
+
+@PostMapping(&quot;/send-data&quot;)
+public void publishData() {
+   streamBridge.send(&quot;mySupplier-out-0&quot;, new Pojo());
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In this case, the application uses a REST endpoint to trigger publishing the data through &lt;code&gt;StreamBridge&lt;/code&gt;. Since the framework does not call the function on a schedule, any external party can initiate the publishing of the data by invoking the REST endpoint.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Is it Appropriate to Use Transactions in These Basic Producers?&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Now that we have seen the two strategies Spring Cloud Stream provides for publishing records, let us return to our main topic of discussion: &lt;strong&gt;transactional publishing&lt;/strong&gt;.
+Assume a scenario in which we want to ensure data integrity and gain transactional guarantees while using one or more of these producers. In that case, the question is whether we need to use transactions to achieve them in the first place. In these two examples above, how can you ensure that the records are published transactionally? The short answer is that you should refrain from using transactions for these types of publishing use cases. The publishing of the records in these examples are single-send scenarios. Using a sync producer, we can achieve the same semantic transactional guarantees. By default, the producer is asynchronous, and, when making it run in synchronous mode, the producer ensures that it writes the records to the leader and all the replicas before sending a response to the client. You can enable sync publishing by setting the &lt;code&gt;spring.cloud.stream.kafka.bindings.&amp;#x3C;binding-name&gt;.producer.sync&lt;/code&gt; property to &lt;code&gt;true&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;To summarize, when designing a producer-only application, use transactions judiciously. We do not recommend using transactions if you send one record at a time by using a &lt;code&gt;Supplier&lt;/code&gt; or through &lt;code&gt;StreamBridge&lt;/code&gt;, since converting the producer to run in sync mode would accomplish the same result without the transaction overhead. This discussion then leads to an interesting question. For producer-only applications, when does it become necessary to use transactions and get the benefits? As discussed in the &lt;a href=&quot;https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications&quot;&gt;previous part&lt;/a&gt; of this blog series, it depends entirely on the application&apos;s use case. In the context of producers, this means that we need only use transactions if we do multiple related publishings, or, in addition to publishing, we need to synchronize with an external transaction manager. The next sections of this post cover the former scenario, and the next post in this blog series covers the latter one.&lt;/p&gt;
+&lt;h2 id=&quot;enabling-transactions-in-spring-cloud-stream-kafka-binder&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#enabling-transactions-in-spring-cloud-stream-kafka-binder&quot; aria-label=&quot;enabling transactions in spring cloud stream kafka binder permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Enabling Transactions in Spring Cloud Stream Kafka Binder&lt;/h2&gt;
+&lt;p&gt;The main driver for enabling transactions in the Kafka binder for Spring Cloud Stream is a single property:  &lt;code&gt;spring.cloud.stream.kafka.binder.transaction.transaction-id-prefix&lt;/code&gt;. When this property has a valid prefix string, the Kafka binder in Spring Cloud Stream ensures that the underlying &lt;code&gt;KafkaTemplate&lt;/code&gt; publishes the data by using transactions. Incidentally, this property signals Spring Cloud Stream to make a consumer be transaction-aware while using processor patterns (&lt;strong&gt;consume-process-produce&lt;/strong&gt; or &lt;strong&gt;read-process-write&lt;/strong&gt; patterns).&lt;/p&gt;
+&lt;h2 id=&quot;transactions-in-action&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#transactions-in-action&quot; aria-label=&quot;transactions in action permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Transactions in Action&lt;/h2&gt;
+&lt;p&gt;Although counterintuitive, let us return to our single &lt;code&gt;Supplier&lt;/code&gt; or &lt;code&gt;StreamBridge&lt;/code&gt; example (described earlier) and introduce transactions to understand the primary usage of transaction components. As explained earlier, we need not use transactions in those cases, as this adds more overhead. However, doing so helps us understand things.&lt;/p&gt;
+&lt;p&gt;Here is the code again:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@SpringBootApplication
+@RestController
+public class SimpleSpringCloudStreamProducer {
+
+  @Bean
+  public Supplier&amp;#x3C;Pojo&gt; mySupplier() {
+    return () -&gt; {
+      new Pojo();
+    };
+  }
+
+  @Autowired
+  StreamBridge streamBridge;
+
+  @PostMapping(&quot;/send-data&quot;)
+  public void publishData() {
+   streamBridge.send(&quot;mySupplier-out-0&quot;, new Pojo());
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Let us now provide the required property.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;spring.cloud.stream.kafka.binder.transaction.transaction-id-prefix: my-transactional-producer-
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Since we are providing the property in the application’s configuration, each time the supplier in this example is invoked (through the framework) or someone calls the REST endpoint behind the &lt;code&gt;StreamBridge#send&lt;/code&gt; method, the underlying publishing to Kafka topic becomes fully transactional.&lt;/p&gt;
+&lt;p&gt;When the supplier is triggered, the Kafka binder uses a &lt;code&gt;KafkaTemplate&lt;/code&gt; to publish the data. When the binder detects that the application provides the &lt;code&gt;transaction-id-prefix&lt;/code&gt; property, each &lt;code&gt;KafkaTemplate#send&lt;/code&gt; invocation is done through the &lt;code&gt;KafkaTemplate#executeInTransaction&lt;/code&gt; method. Thus, rest assured that the frameworks do the underlying publishing to the Kafka topic transactionally. From an application perspective, the only thing the app developer needs to provide for transaction purposes is the &lt;code&gt;transaction-id-prefix&lt;/code&gt; property.&lt;/p&gt;
+&lt;p&gt;Setting the logging level to &lt;code&gt;TRACE&lt;/code&gt; is often worthwhile when developing or debugging transactional applications so that the relevant underlying transactional classes can provide us with details about what’s happening.&lt;/p&gt;
+&lt;p&gt;For example, if you set the logging level to TRACE on the following packages, you will see quite a lot of activity in the logs.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;logging:
+ level:
+   org.springframework.transaction: TRACE
+   org.springframework.kafka.transaction: TRACE
+   org.springframework.kafka.producer: TRACE
+   org.springframework.kafka.core: TRACE
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;We can observe the following in the logs each time the framework calls the supplier method:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;o.s.k.core.DefaultKafkaProducerFactory   : CloseSafeProducer [delegate=org.apache.kafka.clients.producer.KafkaProducer@1426370c] beginTransaction()
+o.s.kafka.core.KafkaTemplate             : Sending: ProducerRecord
+o.s.kafka.core.KafkaTemplate             : Sent: ProducerRecord(topic=myTopic1, partition=null, headers=RecordHeaders(headers = …
+o.s.k.core.DefaultKafkaProducerFactory   : CloseSafeProducer [delegate=org.apache.kafka.clients.producer.KafkaProducer@1426370c] commitTransaction()
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;As you can see from the trace logs, each time it publishes the record transactionally, it forms a sequence: &lt;strong&gt;beginTransaction&lt;/strong&gt;, &lt;strong&gt;Sending&lt;/strong&gt;, &lt;strong&gt;Sent&lt;/strong&gt;, and &lt;strong&gt;commitTransaction&lt;/strong&gt;. If you run the application, you will observe that you see these sequences every second since that is the default schedule for how often Spring Cloud Stream invokes a &lt;code&gt;Supplier&lt;/code&gt; method.&lt;/p&gt;
+&lt;p&gt;The same transactional flow applies to the &lt;code&gt;StreamBridge#send&lt;/code&gt; case also. When Spring Cloud Stream calls the send method, the underlying &lt;code&gt;KafkaTemplate&lt;/code&gt; that the output binding uses ensures that the record publishes within a transaction, since we provide the &lt;code&gt;transaction-id-prefix&lt;/code&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;transactions-with-multiple-record-publishing&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#transactions-with-multiple-record-publishing&quot; aria-label=&quot;transactions with multiple record publishing permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Transactions with multiple record publishing&lt;/h2&gt;
+&lt;p&gt;With that primer out of the way, let’s move on to cases where it makes sense to use transactions. As we discussed before, the need to publish multiple records as a single atomic unit is a valid scenario where using transactions becomes necessary.&lt;/p&gt;
+&lt;p&gt;Let’s look at the following code example:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;public void publish(StreamBridge streamBridge {
+  for (int i = 0; i &amp;#x3C; 5; i++) {
+    streamBridge.send(&quot;mySupplier-out-0&quot;, &quot;data-&quot; + i);
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;As you can see, this is a contrived example to demonstrate what is at stake. Instead of publishing once, we publish multiple records. Publishing to multiple topics is also an equally valid approach here. We might think that we can quickly wrap the publishing of multiple records within a single transaction by setting the &lt;code&gt;transaction-id-prefix&lt;/code&gt; property. However, we need more than this to help us here. We still need to provide the prefix property. However, with just that, each send still occurs in its dedicated transaction. To ensure that the whole end-to-end publishing of all five records happens atomically, we need to apply the &lt;code&gt;@Transactional&lt;/code&gt; annotation from the core Spring Framework on the method. In addition, we must provide a transaction manager bean - &lt;code&gt;KafkaTransactionManager&lt;/code&gt; -  that uses the same producer factory created by the Spring Cloud Stream Kafka binder. Here is how our code looks like now and the application&apos;s configuration:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@SpringBootApplication
+@RestController
+public class SpringCloudStreamProducer {
+
+   @Autowired
+   StreamBridge streamBridge;
+
+   @Autowired Sender sender;
+
+   @Autowired
+   DefaultBinderFactory binderFactory;
+
+   public static void main(String[] args) {
+       SpringApplication.run(SpringCloudStreamProducer.class, args);
+   }
+
+   @PostMapping(&quot;/send-data&quot;)
+   public void publishData() throws InterruptedException {
+       sender.send(streamBridge);
+   }
+
+   @Component
+   static class Sender {
+
+     @Transactional        
+     public void send(StreamBridge streamBridge)      
+     {
+       for (int i = 0; i &amp;#x3C; 5; i++) {
+     	   streamBridge.send(&quot;mySupplier-out-0&quot;, &quot;data-&quot; + i);           
+       }
+     }
+   }
+
+  @Bean
+  KafkaTransactionManager customKafkaTransactionManager() {
+     KafkaMessageChannelBinder kafka = (KafkaMessageChannelBinder)this.binderFactory.getBinder(&quot;kafka&quot;, MessageChannel.class);
+     ProducerFactory&amp;#x3C;byte[], byte[]&gt; transactionalProducerFactory = kafka.getTransactionalProducerFactory();
+     KafkaTransactionManager kafkaTransactionManager = new KafkaTransactionManager(transactionalProducerFactory);
+     return kafkaTransactionManager;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;And the corresponding configuration:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;spring:
+  cloud:
+   stream:
+     bindings:
+       mySupplier-out-0:
+         destination: my-topic
+     kafka:
+       binder:
+         Transaction:
+		transaction-id-prefix: mySupplier-
+producer:
+             configuration:
+               retries: 1
+               acks: all
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Note that the transactional method (the method annotated with &lt;code&gt;@Transactional&lt;/code&gt;) in the preceding code must be in a different class from the one invoking the method. If the invocation is between the methods on the same class or between different classes that are not Spring-managed beans, there is no proxy, and the transaction interceptor does not kick in. The JVM does not know about the proxying and interceptor mechanism at runtime. When adding the &lt;code&gt;@Transactional&lt;/code&gt; annotation on a method, Spring creates a transactional proxy for that method behind the scenes. When Spring Cloud Stream invokes the transactional method, the proxy intercepts that call and then the actual invocation happens through the proxied object.&lt;/p&gt;
+&lt;p&gt;The custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt; bean we provide serves two purposes. First, it makes Spring Boot apply &lt;code&gt;@EnableTransactionManagerment&lt;/code&gt;. It also provides the same producer factory the binder uses internally so that the Transactional annotation uses the proper resources when applying transactions.&lt;/p&gt;
+&lt;p&gt;When Spring Boot detects an available transaction manager bean, it automatically applies the &lt;code&gt;@EnableTransactionManagement&lt;/code&gt; annotation for us, which is responsible for detecting the &lt;code&gt;@Transactional&lt;/code&gt; annotation and then adding the interceptor through the Spring AOP proxy and advice mechanism. In other words, Spring AOP creates a proxy for the &lt;code&gt;@Transactional&lt;/code&gt; method and includes the AOP advice. Without the &lt;code&gt;@EnableTransactionManagement&lt;/code&gt; annotation applied, Spring does not trigger any of these proxying and interception mechanisms. Since the &lt;code&gt;EnableTransactionManagement&lt;/code&gt; annotation is crucial for these various reasons, we must provide a transaction manager bean. Otherwise, the &lt;code&gt;Transactional&lt;/code&gt; annotation on the method has no bearings.&lt;/p&gt;
+&lt;p&gt;Note that we are getting the transactional producer factory from the binder and using that in the constructor for &lt;code&gt;KafkaTransactionManager&lt;/code&gt;. When this bean is present in the application, the entire publishing of all the records now happens within the scope of a single transaction. We see only a single sequence of &lt;strong&gt;beginTransaction…commitTransaction&lt;/strong&gt; in the trace logs, which means that only one proper transaction carries out all the publishing operations.&lt;/p&gt;
+&lt;p&gt;Behind the scenes, these are the sequence of events:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;As soon as the method annotated with &lt;code&gt;Transactional&lt;/code&gt; is called, the transaction interceptor kicks in through the AOP proxying mechanism, and it starts a new transaction by using the custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;When the transaction manager begins the transaction, the resource used by the transaction manager - the transactional resource holder (AKA, producer obtained from the producer factory) - is bound to the transaction.&lt;/li&gt;
+&lt;li&gt;When the method calls the &lt;code&gt;StreamBridge#send&lt;/code&gt; method, the underlying &lt;code&gt;KafkaTemplate&lt;/code&gt; will use the same transactional resource created by the custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt;. Since a transaction is already in progress, it does not start another transaction, but the publishing occurs on the same transactional producer.&lt;/li&gt;
+&lt;li&gt;As it calls more &lt;code&gt;send&lt;/code&gt; methods, it will not start new transactions. Instead, it publishes via the same producer resource used in the original transaction.&lt;/li&gt;
+&lt;li&gt;When the method exits, the interceptor asks the transaction manager to commit the transaction if there is no error. If any of the send operations or anything else in the method throws an exception, the interceptor asks the transaction manager to roll back the transaction. These calls eventually hit the &lt;code&gt;KafkaResourceHolder&lt;/code&gt; &lt;strong&gt;commit&lt;/strong&gt; or &lt;strong&gt;rollback&lt;/strong&gt; methods, which calls the Kafka producer to &lt;strong&gt;commit&lt;/strong&gt; or &lt;strong&gt;rollback&lt;/strong&gt; the transaction.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Since we only have one custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt; bean in our example, we can simply use the &lt;code&gt;Transactional&lt;/code&gt; annotation as is. On the other hand,  if we had multiple custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt; beans, we would have to qualify the &lt;code&gt;@Transactional&lt;/code&gt; annotation with the correct bean name.&lt;/p&gt;
+&lt;h2 id=&quot;what-if-we-run-the-app-without-the-custom-kafkatransactionmanager&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#what-if-we-run-the-app-without-the-custom-kafkatransactionmanager&quot; aria-label=&quot;what if we run the app without the custom kafkatransactionmanager permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;What if we run the app without the custom KafkaTransactionManager?&lt;/h2&gt;
+&lt;p&gt;If we remove the custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt; and run this application, you can see that it creates five individual transactions, not a single transaction. If you enable &lt;code&gt;TRACE&lt;/code&gt; logging, you can see five sequences of &lt;strong&gt;beginTransaction…commitTransaction&lt;/strong&gt; in the logs.&lt;/p&gt;
+&lt;p&gt;You can verify this behavior by writing a transactional consumer Spring Cloud Stream application and setting its isolation level to &lt;code&gt;read_committed&lt;/code&gt;. You can do so by using the &lt;code&gt;spring.cloud.stream.kafka.binder.configuration.isolation.level&lt;/code&gt; property and setting its value to &lt;code&gt;read_committed&lt;/code&gt;. For testing purposes, add a &lt;code&gt;Thread.sleep&lt;/code&gt; or another wait mechanism to simulate the behavior after each &lt;code&gt;StreamBridge#send&lt;/code&gt; in the for loop. You can see that, as soon as each &lt;code&gt;send&lt;/code&gt; method call returns, regardless of the wait, the consumer receives data, thus proving that not a single transaction carried out the entire operation, rather each &lt;code&gt;send&lt;/code&gt; occurred in its own transaction.&lt;/p&gt;
+&lt;p&gt;We see individual transactions for each send because the &lt;code&gt;Transactional&lt;/code&gt; annotation does not do what we expect it to do. The &lt;code&gt;Transactional&lt;/code&gt; annotation works only if there is a transaction manager bean available and its producer factory is the same one used by the binder.&lt;/p&gt;
+&lt;p&gt;Spring Boot auto-configures a &lt;code&gt;KafkaTransactionManager&lt;/code&gt; if it detects the &lt;code&gt;transaction-id-prefix&lt;/code&gt; property in the configuration through &lt;code&gt;spring.kafka.producer.transaction-id-prefix&lt;/code&gt;. However, since we are in a Spring Cloud Stream context, we must use &lt;code&gt;spring.cloud.stream.kafka.binder.transaction.transaction-id-prefix&lt;/code&gt;, since this is how we signal the framework to create an internal transaction manager for the binder and the associated transactional producer factory. What if we provide the proper &lt;code&gt;spring.kafka&lt;/code&gt; prefix so that Spring Boot auto-configures a &lt;code&gt;KakaTransactionManager&lt;/code&gt; for us? Although that is very tempting, it does not work, as the auto-configured transaction manager uses a different producer factory from the one that the binder uses. Thus, we must provide a custom &lt;code&gt;KafkaTransactionManager&lt;/code&gt; that uses the same producer factory the binder uses. This is precisely what we did above.&lt;/p&gt;
+&lt;p&gt;In the next part of this blog series, we will learn how to synchronize with external transaction managers for both producer and consumer-initiated transactions.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[A Bootiful Podcast: Spring AI lead Dr. Mark Pollack]]></title><link>https://spring.io/blog/2023/09/28/a-bootiful-podcast-spring-ai-lead-dr-mark-pollack</link><guid isPermaLink="true">https://spring.io/blog/2023/09/28/a-bootiful-podcast-spring-ai-lead-dr-mark-pollack</guid><dc:creator><![CDATA[Josh Long]]></dc:creator><pubDate>Thu, 28 Sep 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Hi, Spring fans! In this episode I talk to Dr. Mark Pollack, lead of the new Spring AI project. This episode was recorded live at SpringOne at VMware Explore 2023, in Las Vegas.&lt;/p&gt;
+&lt;iframe title=&quot;Spring AI lead Dr. Mark Pollack&quot; allowtransparency=&quot;true&quot; height=&quot;150&quot; width=&quot;100%&quot; style=&quot;border: none; min-width: min(100%, 430px);height:150px;&quot; scrolling=&quot;no&quot; data-name=&quot;pb-iframe-player&quot; src=&quot;https://www.podbean.com/player-v2/?i=ppwr4-14b84f8-pb&amp;from=pb6admin&amp;share=1&amp;download=1&amp;rtl=0&amp;fonts=Arial&amp;skin=1&amp;font-color=&amp;logo_link=episode_page&amp;btn-skin=7&quot; loading=&quot;lazy&quot;&gt;&lt;/iframe&gt;</content:encoded></item><item><title><![CDATA[Introduction to Transactions in Spring Cloud Stream Kafka Applications]]></title><link>https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications</link><guid isPermaLink="true">https://spring.io/blog/2023/09/27/introduction-to-transactions-in-spring-cloud-stream-kafka-applications</guid><dc:creator><![CDATA[Soby Chacko]]></dc:creator><pubDate>Wed, 27 Sep 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;We are starting a new blog series that focuses on working with transactions in Spring Cloud Stream Kafka applications. This blog series covers many low-level details of writing transactional applications with Spring Cloud Stream and Apache Kafka. By the end of this blog series, we hope to give you enough information about writing transactional Spring Cloud Stream Kafka applications for various business use cases.&lt;/p&gt;
+&lt;h2 id=&quot;basic-building-blocks&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#basic-building-blocks&quot; aria-label=&quot;basic building blocks permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Basic Building Blocks&lt;/h2&gt;
+&lt;p&gt;The foundational support for transactions in Spring Cloud Stream Kafka applications primarily comes from Apache Kafka itself and the Spring for Apache Kafka library. However, this blog series is about using this support specifically with Spring Cloud Stream. If you are familiar with how transactions work in Apache Kafka and how Spring for Apache Kafka makes it possible to use it in a Spring-friendly way, this series will feel like home turf.&lt;/p&gt;
+&lt;p&gt;While Apache Kafka provides the foundational transaction support, the Spring for Apache Kafka (AKA Spring Kafka) library extends this support on the Spring side to make it more natural for Spring developers to use it by relying on the traditional transactional support available in Spring Framework. The Kafka binder in Spring Cloud Stream further builds upon this support from Spring for Apache Kafka, making it possible to use that same support in Spring Cloud Stream Kafka applications. In this first part of the blog series, we briefly introduce Kafka transactions, some use case analysis where it becomes helpful to rely on transactions, and the transactional building blocks in Apache Kafka and the Spring ecosystem.&lt;/p&gt;
+&lt;p&gt;There are many use cases, in which, publishing, consuming, and processing records transactionally in Apache Kafka becomes necessary. When producing records transactionally in a producer-initiated application or a process that implements a consume-process-produce pattern transactionally, they are written to Kafka atomically. If something goes wrong, the whole process gets rolled back, and the transaction is not committed. One thing to remember is that, unlike a relational database that supports transactions, where no records persist when such transaction rollback occurs, Apache Kafka still publishes the records to the topic partition. This behavior is due to the fundamental append-only immutable log-based architecture of Apache Kafka, which does not allow any record modifications, such as removing the records after adding them to the record log. One might wonder what the benefit of using transactions is, since the records may be published to the topic partition when a transaction gets aborted, potentially causing consumers to see them. However, a consumer with the proper &lt;a href=&quot;https://docs.confluent.io/platform/current/installation/configuration/consumer-configs.html#isolation-level&quot;&gt;isolation levels&lt;/a&gt; never sees the rolled-back records, even though the records from the rolled-back transaction are in the topic partition. Thus, from an end-to-end standpoint, the whole process is guaranteed to be fully transactional.&lt;/p&gt;
+&lt;h2 id=&quot;transactional-use-cases&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#transactional-use-cases&quot; aria-label=&quot;transactional use cases permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Transactional Use Cases&lt;/h2&gt;
+&lt;p&gt;Transactions usually add significant overhead in Kafka applications. When using transactions in Apache Kafka, each record must add special transaction logs to the record, send a transaction marker to a special transaction state topic, and so on. All these steps take time and space, increasing the overall latency. Therefore, each application must carefully examine the need for transactional support by analyzing the use cases.&lt;/p&gt;
+&lt;p&gt;Transactions provide a way to primarily safeguard the data to provide &lt;a href=&quot;https://en.wikipedia.org/wiki/ACID&quot;&gt;ACID&lt;/a&gt; capabilities. It ensures data integrity by providing atomicity, consistency, data isolation, and durability.&lt;/p&gt;
+&lt;p&gt;There are several mission-critical use cases in today’s enterprises where using transactions and relying on the ACID semantics they bring is highly desirable. There is no simple, straightforward answer regarding when you want to use transactions and justify the overhead it brings. You have to look at the application and evaluate what is at stake. The usual canonical example of transactions is anything that needs to deal with financial data. Bob sends money to Alice, an action that debits from Bob’s account, and Alice gets credited. If anything goes wrong in this process, the whole thing gets rolled back as if nothing happened, as we do not want the flow to be in a haphazard state. If the process debits from Bob’s account, but Alice is not credited (or vice-versa), that is a problem. From Apache Kafka perspective, we have a few things going on here. First, a message comes to a Kafka processor to debit from Bob’s account and the receiver&apos;s information. The processor processes the information and then sends a message to another topic, indicating that a debit occurred from Bob’s account. After this, another message indicates that Alice is now credited. The various actions in this process require complex coordination to ensure that everything happens as expected. Any time we have multiple related events like these, transactions may help ensure data integrity and provide the ACID semantics. In this example, a single event does not have much meaning standalone, but they all combine to form the entire flow and require transactionality to ensure data integrity.&lt;/p&gt;
+&lt;p&gt;If we want to generalize this pattern, we can say that any time we have a consume-process-publish pattern that is mission critical, where, if one component fails, the whole processor needs to act as if it didn’t happen, using transactions is a potential solution to look at.&lt;/p&gt;
+&lt;h4 id=&quot;more-high-level-examples-from-other-domains&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#more-high-level-examples-from-other-domains&quot; aria-label=&quot;more high level examples from other domains permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;More high-level examples from other domains&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;Imagine an airline reservation system that needs to publish information about a reservation with multiple legs. If, for any reason, the system cannot publish the whole reservation, it needs to abort the process and start over.&lt;/li&gt;
+&lt;li&gt;A brokerage that sends requests that contain multiple buy orders to send to a clearing house. Suppose the process cannot publish the individual orders as a single atomic unit to the messaging system from which the clearing house consumes. In that case, the brokerage must resend the order.&lt;/li&gt;
+&lt;li&gt;A medical billing system that sends patient test data to an insurance company must publish various related tests from a patient to the messaging system.&lt;/li&gt;
+&lt;li&gt;An online gaming system needs to track players&apos; positions in a game and send them to a centralized server transactionally to ensure that all the players see the correct coordinates, not partially updated locations.&lt;/li&gt;
+&lt;li&gt;An inventory restocking system at a retailer needs to send information about various related product statuses as a single atomic unit.&lt;/li&gt;
+&lt;li&gt;An online e-commerce ordering system that publishes order details (such as order entries, account holder information, shipping information, and so on) within a single atomic aggregate operation.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&quot;synchronizing-with-external-databases&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#synchronizing-with-external-databases&quot; aria-label=&quot;synchronizing with external databases permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Synchronizing with External Databases&lt;/h4&gt;
+&lt;p&gt;Another class of use cases in which transactions become handy is when you have to synchronize with other transactional systems. In addition to publishing to Kafka, assume that you must persist the records or some derived information in a relational database, all within a single atomic operation. If one system fails to send the data, we must roll back. If you have only a single record each time to publish to Kafka and nothing else and no other related operations, you do not need to use transactions, as we will see in the next part of this blog series. However, even if you publish to a Kafka topic only once but use a relational database operation as part of the same process, using transactions becomes necessary to ensure data integrity.&lt;/p&gt;
+&lt;h4 id=&quot;publishing-to-multiple-kafka-topics&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#publishing-to-multiple-kafka-topics&quot; aria-label=&quot;publishing to multiple kafka topics permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Publishing to Multiple Kafka Topics&lt;/h4&gt;
+&lt;p&gt;Another use case for transactions in a producer-only application is publishing to multiple Kafka topics. Assume you have some business-critical data in the form of a critical notification (such as an order detail) you wish to publish to multiple Kafka topics, some part of the order detail to an order topic, and another to a shipping topic. In that case, we can use transactions to ensure end-to-end data integrity.&lt;/p&gt;
+&lt;h4 id=&quot;generalizing-the-transactional-use-cases-above&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#generalizing-the-transactional-use-cases-above&quot; aria-label=&quot;generalizing the transactional use cases above permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Generalizing the Transactional Use Cases Above&lt;/h4&gt;
+&lt;p&gt;The above set of use cases is a non-exhaustive list where transactions are necessary. Many other use cases, not that different from the general thrust of the ones we looked at, exist in today’s enterprises from various domains that require transactional processing in messaging systems.&lt;/p&gt;
+&lt;p&gt;The following list summarizes generalized use cases where transactions in Apache Kafka can be helpful:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Consume-process-publish systems where it needs to publish records as a single atomic unit and provide an exactly-once-semantics delivery guarantee.&lt;/li&gt;
+&lt;li&gt;Multiple publishing events that are related and do not make sense individually.&lt;/li&gt;
+&lt;li&gt;Publishing data to multiple topics as a single atomic unit.&lt;/li&gt;
+&lt;li&gt;Synchronizing with external transaction managers.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Here is a pictorial representation of all these various situations. It covers the scenarios we considered above, such as the consume-process-produce, multiple producers, synchronizing with external transactions, and others. A processor consumes data from an inbound topic, executes the business logic, persists some information to a database system, and publishes to multiple Kafka topics.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://github.com/spring-cloud/spring-cloud-stream/raw/gh-pages/images/scst-kafka-txn-overview.png&quot; alt=&quot;scst-kafka-txn-overview&quot;&gt;&lt;/p&gt;
+&lt;h2 id=&quot;transactions-in-apache-kafka&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#transactions-in-apache-kafka&quot; aria-label=&quot;transactions in apache kafka permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Transactions in Apache Kafka&lt;/h2&gt;
+&lt;p&gt;There is plenty of literature available to study the low-level details of how transactions work in Apache Kafka, and &lt;a href=&quot;https://www.confluent.io/blog/transactions-apache-kafka&quot;&gt;here is an article&lt;/a&gt; that can give an introduction to those details. However, briefly seeing the Kafka client APIs for achieving transactionality from a very high-level is still worthwhile. One thing to note is that, when it comes to plain consumers, there is no such thing as a transactional consumer in Kafka, but there are transaction-aware consumers. Consumers achieve this transactional awareness by setting the isolation level. By default, a consumer in Kafka sees all records, even the uncommitted records, by an upstream producer because the default isolation level is &lt;strong&gt;read_uncommitted&lt;/strong&gt; in a Kafka consumer. A Kafka consumer must use the isolation level of &lt;strong&gt;read_committed&lt;/strong&gt; to provide end-to-end transactional semantics. We will see how we can accomplish this in Spring Cloud Stream in the upcoming sections of this blog series.&lt;/p&gt;
+&lt;p&gt;On the producer side, there are a few API methods that an application relies on from the Kafka client. Let’s take a look at the important ones.&lt;/p&gt;
+&lt;p&gt;To make an application transactional, the Kafka client requires a transaction ID. The applications provide it through a Kafka producer property called &lt;strong&gt;transactional.id&lt;/strong&gt;, which the transaction coordinator uses to initiate the transaction by registering it. The transaction coordinator uses this ID to track all aspects of the transaction, such as initializing it, ongoing progress, commit, etc.&lt;/p&gt;
+&lt;p&gt;The following list summarizes the critical transaction-related producer API methods.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Producer#initTransactions()&lt;/strong&gt; - Called once per producer to initiate transaction support. Initializes the Kafka transaction.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Producer#beginTransaction()&lt;/strong&gt; - Begins the transaction before sending the record.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Producer#sendOffsetsToTransaction()&lt;/strong&gt; - Sends the consumed record offset to the transaction.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Producer#commitTransaction()&lt;/strong&gt; - Commits the transaction.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Producer#abortTransaction()&lt;/strong&gt; - Aborts the transaction.&lt;/p&gt;
+&lt;p&gt;Before sending a record, we need to initialize and begin the transaction. Then, it carries on with data processing. If we consumed a record to do this publishing, we must send the consumed record’s offset to the transaction using the producer. After this, the transaction commit or abort operation can continue (commitTransaction or abortTransaction). When we call the commitTransaction method, that is when, exactly, the offsets are atomically sent to the consumer_offsets topic by the Kafka client.&lt;/p&gt;
+&lt;h2 id=&quot;transaction-support-in-spring-for-apache-kafka&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#transaction-support-in-spring-for-apache-kafka&quot; aria-label=&quot;transaction support in spring for apache kafka permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Transaction Support in Spring for Apache Kafka&lt;/h2&gt;
+&lt;p&gt;When using a framework like Spring for Apache Kafka or Spring Cloud Stream Kafka binder that relies on it, they bring the benefit of allowing applications to focus primarily on the business logic since the frameworks handle the low-level boilerplate transactional sequence that we saw above.
+It would be beneficial to use Spring for Apache Kafka or another framework (such as Spring Cloud Stream that uses it) because it allows us not worrying about writing the low-level boilerplate sequence (described above) to ensure that all the transactional steps succeed. As you can imagine, there are many moving parts here, and if you omit a step or not doing a step as per the expectations, it could make the application error-prone. In the case of Spring, the frameworks we mentioned handle them on behalf of the application developer. Let’s briefly see how it does that.&lt;/p&gt;
+&lt;p&gt;The Spring for Apache Kafka framework hides all these low-level details by providing a consistent transactional programming model familiar to Spring developers. The result is that the applications, when using Spring for Apache Kafka or another framework such as Spring Cloud Stream, can simply focus on the application’s business logic rather than deal with complex low-level transactional-related matters.&lt;/p&gt;
+&lt;h4 id=&quot;kafkatransactionmanager&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#kafkatransactionmanager&quot; aria-label=&quot;kafkatransactionmanager permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;KafkaTransactionManager&lt;/h4&gt;
+&lt;p&gt;How does Spring for Apache Kafka provide this consistent transactional programming model? The short answer is that Spring developers have traditionally used Transactional annotation or programmatic approaches, such as using a TransactionTemplate directly in the applications to create local transactions. These mechanisms need a transaction manager implementation to drive the transactional aspects. Spring for Apache Kafka provides a transaction manager implementation. &lt;strong&gt;KafkaTransactionManager&lt;/strong&gt; is an implementation of the &lt;strong&gt;PlatformTransactionManager&lt;/strong&gt; in Spring Framework. You can use this transaction manager along with the Transactional annotation or in local transactions by using a TransactionTemplate. KafkaTransactionManager uses a producer factory to create a Kafka producer and provides APIs to begin, commit, and roll back transactions.&lt;/p&gt;
+&lt;h4 id=&quot;kafkaresourceholder&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#kafkaresourceholder&quot; aria-label=&quot;kafkaresourceholder permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;KafkaResourceHolder&lt;/h4&gt;
+&lt;p&gt;Spring for Apache Kafka also provides a &lt;strong&gt;KafkaResourceHolder&lt;/strong&gt; that holds the Kafka producer resource. KafkaTemplate in Spring for Apache Kafka triggers the binding of a KafkaResourceHolder on the current thread for a given producer factory. In the case of a consumer-initiated transaction, the message listener container does this binding, and the producer factory is the same as that used by the KafkaTransactionManager. This way, the transaction uses the same transactional producer for all publishing needs.&lt;/p&gt;
+&lt;p&gt;In addition to the above components, Spring for Apache Kafka provides other utilities for dealing with transactional-related concerns. As it becomes necessary when we go through the following sections of this series, we will see some of them.&lt;/p&gt;
+&lt;p&gt;In part 2 of this blog series, we will move on to more practical implementation details of using transactions in Spring Cloud Stream applications.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[This Week in Spring - September 26th, 2023]]></title><link>https://spring.io/blog/2023/09/26/this-week-in-spring-september-26th-2023</link><guid isPermaLink="true">https://spring.io/blog/2023/09/26/this-week-in-spring-september-26th-2023</guid><dc:creator><![CDATA[Josh Long]]></dc:creator><pubDate>Tue, 26 Sep 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Hi, Spring fans! Welcome to another installment of &lt;em&gt;This Week in Spring&lt;/em&gt;! How are you? It&apos;s September 26th, 2023, and I am in sunny Singapore for SpringOne at VMWare Explore Singapore. If you&apos;re around, don&apos;t forget to say hi!&lt;/p&gt;
+&lt;p&gt;It&apos;s gonna be a fun and busy week in Singapore, and then next week I&apos;m off to Antwerp, Belgium, for the amazing Devoxx BE 2023. Then, I&apos;m off to Morocco, for Devoxx MA 2023. Then, I&apos;m off to Amsterdam for SpringOne Tour Amsterdam. If you&apos;re in any of these places, do not hesitate to reach out and say hi! I&apos;d love to chat! And with that, we&apos;ve got a ton of things to cover so let&apos;s dive right into it!&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Java 21 is here, and I wrote a huuuuge explainer about all the new features in this blog here: &lt;a href=&quot;https://spring.io/blog/2023/09/20/hello-java-21&quot;&gt;Hello, Java 21&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;If you want to watch your knowledge instead of read it, &lt;a href=&quot;https://www.youtube.com/watch?v=8VJ_dSdV3pY&quot;&gt;you might watch this video instead&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Want to learn more about one key dimension of the new features in Java 21? Check out this article from Java language architect Brian Goetz from 2022: &lt;a href=&quot;https://www.infoq.com/articles/data-oriented-programming-java/&quot;&gt;Data Oriented Programming in Java&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://cloud.google.com/blog/products/application-development/develop-and-test-spring-boot-applications-consistently/&quot;&gt;How Google Cloud emulators and Testcontainers speed up development | Google Cloud Blog&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://twitter.com/juliendubois/status/1705305573627965499&quot;&gt;Want to use Oracle OpenJDK 21 in Github Actions? Julien Dubois has you sorted&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2023/09/22/simplified-event-externalization-with-spring-modulith&quot;&gt;Simplified Event Externalization with Spring Modulith&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2023/09/21/spring-cloud-dataflow-2-11-0-released&quot;&gt;Spring Cloud Dataflow 2.11.0 Released&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://m.youtube.com/watch?si=npRfyttagbPKwcPb&amp;#x26;v=430YOyMNjhs&amp;#x26;feature=youtu.be&quot;&gt;Spring Modulith ? A Deep Dive (Workshop) - YouTube&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2023/09/19/spring-for-graphql-1-0-5-1-1-6-1-2-3-released&quot;&gt;Spring for GraphQL 1.0.5, 1.1.6, 1.2.3 released&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://kubernetes.io/blog/2023/09/25/kubeadm-use-etcd-learner-mode/&quot;&gt;Blog: kubeadm: Use etcd Learner to Join a Control Plane Node Safely&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Paketo Buildpacks Bionic End Of Support]]></title><link>https://spring.io/blog/2023/09/22/paketo-buildpacks-bionic-end-of-support</link><guid isPermaLink="true">https://spring.io/blog/2023/09/22/paketo-buildpacks-bionic-end-of-support</guid><dc:creator><![CDATA[Scott Frederick]]></dc:creator><pubDate>Fri, 22 Sep 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;The Spring Boot plugins for Maven and Gradle provide the ability to &lt;a href=&quot;https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#container-images.buildpacks&quot;&gt;build Docker images using Cloud Native Buildpacks&lt;/a&gt;. By default, Spring Boot uses the CNB builders provided by the &lt;a href=&quot;https://paketo.io/&quot;&gt;Paketo Buildpacks&lt;/a&gt; project.&lt;/p&gt;
+&lt;h1 id=&quot;whats-changed&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#whats-changed&quot; aria-label=&quot;whats changed permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;What&apos;s Changed&lt;/h1&gt;
+&lt;p&gt;The Paketo Buildpacks project has announced that Ubuntu 18.04 Bionic-based builders are no longer supported, in favor of Ubuntu 22.04 Jammy-based builders. See the &lt;a href=&quot;https://blog.paketo.io/posts/bionic-eos/&quot;&gt;Paketo announcement&lt;/a&gt; for more details on the builders that are affected by this change.&lt;/p&gt;
+&lt;p&gt;The Maven and Gradle plugins for Spring Boot versions 3.1 and earlier use the Bionic Base Builder by default when building images to run applications on a JVM, and the Bionic Tiny Builder by default when building images from native executables using GraalVM. Paketo Jammy builders will be the default starting with Spring Boot 3.2.&lt;/p&gt;
+&lt;p&gt;Users of Spring Boot 3.1 and earlier should make changes to their build configurations to migrate to the Paketo Jammy builders in order to receive regular updates to buildpacks and the dependencies that buildpacks install.&lt;/p&gt;
+&lt;h1 id=&quot;migration&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#migration&quot; aria-label=&quot;migration permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Migration&lt;/h1&gt;
+&lt;h2 id=&quot;maven&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#maven&quot; aria-label=&quot;maven permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Maven&lt;/h2&gt;
+&lt;p&gt;To use the Paketo Jammy builder in a Spring Boot build using Maven, the builder should be configured as shown in this example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-xml&quot;&gt;&amp;#x3C;project&gt;
+    &amp;#x3C;build&gt;
+        &amp;#x3C;plugins&gt;
+            &amp;#x3C;plugin&gt;
+                &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+                &amp;#x3C;artifactId&gt;spring-boot-maven-plugin&amp;#x3C;/artifactId&gt;
+                &amp;#x3C;configuration&gt;
+                    &amp;#x3C;image&gt;
+                        &amp;#x3C;builder&gt;paketobuildpacks/builder-jammy-base:latest&amp;#x3C;/builder&gt;
+                    &amp;#x3C;/image&gt;
+                &amp;#x3C;/configuration&gt;
+            &amp;#x3C;/plugin&gt;
+        &amp;#x3C;/plugins&gt;
+    &amp;#x3C;/build&gt;
+&amp;#x3C;/project&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;See the Spring Boot Maven plugin &lt;a href=&quot;https://docs.spring.io/spring-boot/docs/current/maven-plugin/reference/htmlsingle/#build-image.customization&quot;&gt;documentation&lt;/a&gt; for more information on configuring the plugin.&lt;/p&gt;
+&lt;h2 id=&quot;gradle&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#gradle&quot; aria-label=&quot;gradle permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Gradle&lt;/h2&gt;
+&lt;p&gt;When using Gradle with Groovy, the builder should be configured as shown in this example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-groovy&quot;&gt;tasks.named(&quot;bootBuildImage&quot;) {
+	builder = &quot;paketobuildpacks/builder-jammy-base:latest&quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;When using Gradle with Kotlin, the builder should be configured as shown in this example:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-kotlin&quot;&gt;tasks.named&amp;#x3C;BootBuildImage&gt;(&quot;bootBuildImage&quot;) {
+	builder.set(&quot;paketobuildpacks/builder-jammy-base:latest&quot;)
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;See the Spring Boot Gradle plugin &lt;a href=&quot;https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#build-image.customization&quot;&gt;documentation&lt;/a&gt; for more information on configuring the plugin.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Simplified Event Externalization with Spring Modulith]]></title><link>https://spring.io/blog/2023/09/22/simplified-event-externalization-with-spring-modulith</link><guid isPermaLink="true">https://spring.io/blog/2023/09/22/simplified-event-externalization-with-spring-modulith</guid><dc:creator><![CDATA[Oliver Drotbohm]]></dc:creator><pubDate>Fri, 22 Sep 2023 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Transactional service methods are a common pattern in Spring applications. These methods trigger a state transition important to the business. This usually involves a core domain abstraction, such as an aggregate and its corresponding repository. A stereotypical example of such an arrangement might look like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Service
+@RequiredArgsConstructor
+class OrderManagement {
+
+  private final OrderRepository orders;
+
+  @Transactional
+  Order complete(Order order) {
+     return orders.save(order.complete());
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;As state transitions like these might be interesting to third parties, we might want to involve a message broker to publish a message for general distribution across other systems. A naive approach to implement this would be to hide that kind of interaction in another Spring service, inject that into our primary bean and invoke a method that would ultimately interact with the broker.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Service
+@RequiredArgsConstructor
+class OrderManagement {
+
+  private final OrderRepository orders;
+  private final MessageSender sender;
+
+  @Transactional
+  Order complete(Order order) {
+
+     var result = orders.save(order.complete());
+
+     sender.publishMessage(…);
+
+     return result;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&quot;problems&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#problems&quot; aria-label=&quot;problems permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Problems&lt;/h2&gt;
+&lt;p&gt;Unfortunately, this approach suffers from a variety of problems:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;As the method runs within a transaction, it has already acquired a database connection. Interaction with other infrastructure is costly and, thus, likely significantly extends the length of the transaction, preventing the connection from being returned early, which might lead to connection pool saturation and, thus, poor performance.&lt;/li&gt;
+&lt;li&gt;While we have elegantly wrapped the interaction with the broker behind a nice-looking facade, our &lt;code&gt;completeOrder(…)&lt;/code&gt; method is now susceptible to more infrastructure problems. Failing to access the broker rolls back the transactions and prevent orders from completion. Our system might be technically available but entirely unable to do anything useful due to a downstream infrastructure problem.&lt;/li&gt;
+&lt;li&gt;Lastly, we have created a consistency issue in case the message publication succeeds but the database transaction ends up rolling back eventually.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;A common pattern to solve these problems is publishing an application event from the service, which, at first glance, doesn&apos;t look too different from what we had laid out before.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Service
+@RequiredArgsConstructor
+class OrderManagement {
+
+  private final OrderRepository orders;
+  private final ApplicationEventPublisher events; 
+
+  @Transactional
+  Order complete(Order order) {
+
+     var result = orders.save(order.complete());
+
+     events.publishEvent(
+         new OrderCompleted(result.getId(), result.getCustomerId()));
+
+     return result;
+  }
+
+  record OrderCompleted(OrderId orderId, CustomerId customerId) {}
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The primary difference here is that the event published is a simple object handed around &lt;em&gt;within&lt;/em&gt; the JVM in the first place. The actual interaction with the broker would then be implemented in an &lt;code&gt;@Async&lt;/code&gt; &lt;code&gt;@TransactionalEventListener&lt;/code&gt;. By default, such a listener will be invoked after the original business transaction has committed, which resolves issue 3. Marking the listener with &lt;code&gt;@Async&lt;/code&gt; causes the event handling being executed on a separate thread, which in turn solves problem 1.&lt;/p&gt;
+&lt;h2 id=&quot;spring-modulith-event-externalization&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-modulith-event-externalization&quot; aria-label=&quot;spring modulith event externalization permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring Modulith Event Externalization&lt;/h2&gt;
+&lt;p&gt;The implementation of the listener is a rather mundane exercise: we have to select a broker-specific client (Spring Kafka, Spring AMQP, JMS, and others), marshal the event, determine a routing target, and (optional and depending on the broker) a routing key. Spring Modulith 1.1 M1 ships such an integration out of the box. To use it with Kafka, for example, you would add the corresponding artifact to your project’s class path:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.modulith&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-modulith-events-api&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.modulith&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-modulith-events-kafka&amp;#x3C;/artifactId&gt;
+  &amp;#x3C;scope&gt;runtime&amp;#x3C;/scope&gt;
+&amp;#x3C;/dependency&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The presence of the latter JAR registers a listener, as described above. To get an application event transparently published to a broker, you can annotate it with the &lt;code&gt;@Externalized&lt;/code&gt; annotation provided by either Spring Modulith&apos;s (the first JAR) or jMolecules&apos; (not shown), like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;import org.springframework.modulith.events.Externalized;
+
+@Externalized(&quot;orders.OrderCompleted::#{customerId()}&quot;)
+record OrderCompleted(OrderId orderId, CustomerId customerId) {}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The presence of the annotation triggers instances of that class being selected for publication. We have defined &lt;code&gt;orders.OrderCompleted&lt;/code&gt; as a routing target. The SpEL expression, &lt;code&gt;#{customerId()}&lt;/code&gt;, selects the accessor method to be invoked on the event to produce a routing key, which triggers the correct partition assignment. If you prefer describing event selection and routing in code, check out how to use &lt;a href=&quot;https://docs.spring.io/spring-modulith/reference/1.1/events.html#externalization.api&quot;&gt;&lt;code&gt;EventExternalizationConfiguration&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;error-scenarios&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#error-scenarios&quot; aria-label=&quot;error scenarios permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Error Scenarios&lt;/h2&gt;
+&lt;p&gt;This is all pretty convenient, and we have elegantly solved two of our three problems already. But what about the error scenario? What if the message publication fails? The original business transaction has already committed, but we have now lost the internal event publication. Fortunately, that case is already solved by Spring Modulith&apos;s &lt;a href=&quot;https://docs.spring.io/spring-modulith/reference/1.1/events.html#publication-registry&quot;&gt;Event Publication Registry&lt;/a&gt;. It creates a registry entry for every transactional event listener interested in an event being published and marks that entry completed only if the listener succeeds. Failing to send the message to the broker results in the entry staying around, being subject to resubmission attempts later.&lt;/p&gt;
+&lt;h2 id=&quot;summary&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#summary&quot; aria-label=&quot;summary permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Summary&lt;/h2&gt;
+&lt;p&gt;Interacting with third infrastructure within a primary business transaction should be avoided for performance, reliability, and consistency reasons. Spring Modulith 1.1 allows easily publishing application events to message brokers by marking event types for externalization and defining routing targets and keys. For more information, refer to the &lt;a href=&quot;https://docs.spring.io/spring-modulith/reference/1.1/events.html#externalization&quot;&gt;reference documentation&lt;/a&gt;.&lt;/p&gt;</content:encoded></item></channel></rss>

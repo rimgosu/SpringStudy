@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<libraryInfos>
+    <libraryInfo home="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\bin" version="1.8.0_242">
+        <bootpath>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\resources.jar"/>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\rt.jar"/>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\sunrsasign.jar"/>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\jsse.jar"/>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\jce.jar"/>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\charsets.jar"/>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\jfr.jar"/>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\classes"/>
+        </bootpath>
+        <extensionDirs>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\ext"/>
+            <entry path="C:\WINDOWS\Sun\Java\lib\ext"/>
+        </extensionDirs>
+        <endorsedDirs>
+            <entry path="C:\eGovFrame-4.0.0\bin\jdk8u242-b08\jre\lib\endorsed"/>
+        </endorsedDirs>
+    </libraryInfo>
+</libraryInfos>

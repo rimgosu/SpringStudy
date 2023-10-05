@@ -1,0 +1,4 @@
+//com.springsource.config.ui.prefs.activePageIndex\:/lab102-code-generation/src/main/resources/egovframework/spring/context-aspect.xml=<?xml version\="1.0" encoding\="UTF-8"?>\r\n<activePage index\="0"/>
+//com.springsource.config.ui.prefs.activePageIndex\:/lab103/src/main/resources/context-helloworld.xml=<?xml version\="1.0" encoding\="UTF-8"?>\r\n<activePage index\="0"/>
+//com.springsource.config.ui.prefs.activePageIndex\:/lab103/src/test/resources/context-helloworld.xml=<?xml version\="1.0" encoding\="UTF-8"?>\r\n<activePage index\="0"/>
+eclipse.preferences.version=1

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.spring.mapper.BoardMapper">
+
+	<select id="getList" resultType="kr.spring.entity.Board">
+		SELECT * FROM TBLBOARD
+		ORDER BY BOARDGROUP DESC
+	</select>
+
+
+	<insert id="insert" parameterType="kr.spring.entity.Board">
+		INSERT INTO TBLBOARD(IDX, MEMID, TITLE, CONTENT, WRITER,
+		BOARDGROUP, BOARDSEQUENCE, BOARDLEVEL, BOARDAVAILABLE)
+		SELECT IFNULL(MAX(IDX) + 1, 1), #{memID}, #{title}, #{content},
+		#{writer}, IFNULL(MAX(BOARDGROUP) + 1, 1), 0, 0, 1
+		FROM TBLBOARD
+	</insert>
+
+	<insert id="insertSelectKey" parameterType="kr.spring.entity.Board">
+		<selectKey keyProperty="idx,boardGroup" resultType="kr.spring.entity.Board" order="BEFORE">
+			SELECT IFNULL(MAX(IDX) + 1, 1) as idx,
+				   IFNULL(MAX(BOARDGROUP) + 1, 1) as boardGroup
+			  FROM TBLBOARD
+		</selectKey>
+		INSERT INTO TBLBOARD(IDX, MEMID, TITLE, CONTENT, WRITER,
+		BOARDGROUP, BOARDSEQUENCE, BOARDLEVEL, BOARDAVAILABLE)
+		VALUES(#{idx},#{memID},#{title},#{content},#{writer},#{boardGroup}, 0,0,1)
+	</insert>
+	
+	<select id="login" parameterType="kr.spring.entity.Member" resultType="kr.spring.entity.Member">
+		SELECT *
+		  FROM TBLMEMBER
+		 WHERE MEMID = #{memID} 
+		   AND MEMPWD = #{memPwd}
+	</select>
+	
+	<select id="read" parameterType="int" resultType="kr.spring.entity.Board">
+		SELECT * FROM TBLBOARD WHERE IDX = #{idx}
+	</select>
+
+</mapper>
