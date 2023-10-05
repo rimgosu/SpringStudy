@@ -1212,7 +1212,7 @@ c. 프로필 사진 변경
 
 #### fmt
 - 날짜 포맷을 지정할 수 있는 태그 라이브러리
-- 임포트
+- import
 ```
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 ```
