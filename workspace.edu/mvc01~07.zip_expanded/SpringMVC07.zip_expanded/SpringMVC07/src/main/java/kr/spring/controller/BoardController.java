@@ -3,6 +3,8 @@ package kr.spring.controller;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 
+import javax.jws.WebParam.Mode;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,9 +26,44 @@ public class BoardController {
 	// BoardService -> interface
 	// BoardServiceImpl -> BoardService로 업캐스팅 된다
 	
+	@PostMapping("/reply")
+	public String reply(Board vo) {
+		service.reply(vo);
+		return "redirect:/board/list";
+	}
+	
+	@GetMapping("/reply")
+	public String reply(@RequestParam("idx") int idx, Model model) {
+		Board vo = service.get(idx);
+		model.addAttribute("vo", vo);
+		return "board/reply";
+	}
+	
+	@GetMapping("/remove")
+	public String remove(@RequestParam("idx") int idx) {
+		System.out.println("**********삭제 기능 실행***********");
+		service.remove(idx);
+		return "redirect:/board/list";
+	}
+	
+	@PostMapping("/modify")
+	public String modify(Board vo) {
+		service.modify(vo);
+		return "redirect:/board/list";
+	}
+	
+	
+	@GetMapping("/modify")
+	public String modify(@RequestParam("idx") int idx, Model model) {
+		Board vo = service.get(idx);
+		
+		model.addAttribute("vo", vo);
+		return "board/modify";
+	}
+	
 	@GetMapping("/get")
 	public String get(@RequestParam("idx") int idx, Model model) {
-		Board vo = service.read(idx);
+		Board vo = service.get(idx);
 		model.addAttribute("vo", vo);
 		return "board/get";
 	}

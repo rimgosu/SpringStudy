@@ -35,10 +35,38 @@ public class BoardServiceImpl implements BoardService{
 	}
 
 	@Override
-	public Board read(int idx) {
+	public Board get(int idx) {
 		// TODO Auto-generated method stub
 		Board vo = mapper.read(idx);
 		return vo;
+	}
+
+	@Override
+	public void modify(Board vo) {
+		// TODO Auto-generated method stub
+		mapper.update(vo);
+	}
+
+	@Override
+	public void remove(int idx) {
+		// TODO Auto-generated method stub
+		mapper.delete(idx);
+	}
+
+	@Override
+	public void reply(Board vo) {
+		// vo : 댓글, parent : 원 글
+		Board parent = mapper.read(vo.getIdx());
+		System.out.println("parentBoardGroup : " + parent.getBoardGroup());
+		vo.setBoardGroup(parent.getBoardGroup());
+		vo.setBoardSequence(parent.getBoardSequence() +1);
+		vo.setBoardLevel(parent.getBoardLevel() +1);
+		
+		// 현재 넣으려는 답글을 제외한 기존 같은 그룹의 댓글의 시퀀스 값을 1씩 올려줘야 한다.
+		mapper.replySeqUpdate(parent);
+		
+		// 답변 저장
+		mapper.replyInsert(vo);
 	}
 	
 	
