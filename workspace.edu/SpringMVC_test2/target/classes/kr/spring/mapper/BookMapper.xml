@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.spring.mapper.BookMapper">
+
+
+<select id="getBookLists" parameterType="kr.spring.entity.Book" resultType="kr.spring.entity.Book">
+	SELECT * FROM BOOK
+</select>
+
+<insert id="bookInsert" parameterType="kr.spring.entity.Book">
+	INSERT INTO BOOK (TITLE, AUTHOR, COMPANY, ISBN, COUNT)
+	VALUES(#{title}, #{author}, #{company}, #{isbn}, #{count})
+</insert>
+
+<delete id="bookDelete" parameterType="kr.spring.entity.Book">
+	DELETE FROM BOOK WHERE NUM=#{num}
+</delete>
+
+<select id="bookContent" parameterType="kr.spring.entity.Book" resultType="kr.spring.entity.Book">
+	SELECT * FROM BOOK WHERE NUM=#{num}
+</select>
+
+<update id="bookUpdate" parameterType="kr.spring.entity.Book">
+	update book 
+	set count = #{count}
+	where NUM=#{num}
+</update>
+
+
+
+
+</mapper>
