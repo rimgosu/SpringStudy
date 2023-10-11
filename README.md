@@ -1255,12 +1255,38 @@ c. 프로필 사진 변경
 
 
 
+2. a태그 → submit태그
+- [get.jsp](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC07%20(1).zip_expanded/SpringMVC07/src/main/webapp/WEB-INF/views/board/get.jsp)
+- 버튼에 data-btn 속성 달아주기
+```
+<button data-btn="reply">
+<button data-btn="modify">
+<button data-btn="list">
+```
+
+- 자바스크립트로 버튼을 클릭했을 때 액션 추가
+```
+<script type="text/javascript">
+	// 링크처리
+	$(document).ready(function(){
+		$("button").on("click", function(e){
+			var formData = $("#frm");
+			var btn = $(this).data("btn");
+		});
+	});
+</script>
+```
 
 
 
+#### 페이징
+> SpringMVC07 → SpringMVC08
 
+1. 페이징 기본 설정 Class
 
+- [Criteria.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC08_Paging/src/main/java/kr/spring/entity/Criteria.java)
 
+- [PageMaker.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC08_Paging/src/main/java/kr/spring/entity/PageMaker.java)
 
 
 
