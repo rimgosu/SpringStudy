@@ -18,22 +18,20 @@
 </head>
 <body>
 	<div class="container">
-		<h2>Spring MVC07</h2>
+		<h2>Spring MVC08</h2>
 		<div class="panel panel-default">
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
-				<form action="${cpath}/board/reply" method="post">
+				<form action="${cpath}/board/register" method="post">
 					<input type="hidden" name="memID" value="${mvo.memID}">
-					<!-- 부모글의 게시글 번호 -->
-					<input type="hidden" name="idx" value="${vo.idx}">
 						
 					<div class="form-group">
 						<label>제목</label>
-						<input value="<c:out value='${vo.title}' />" type="text" name="title" class="form-control">
+						<input type="text" name="title" class="form-control">
 					</div>
 					
 					<div class="form-group">
-						<label>답변</label>
+						<label>내용</label>
 						<textarea rows="10" cols="" name="content" class="form-control"></textarea>
 					</div>
 					
@@ -42,37 +40,19 @@
 						<input value="${mvo.memName}" readonly="readonly" type="text" name="writer" class="form-control">
 					</div>
 					<button type="submit" class="btn btn-default btn-sm">등록</button>
-					<button type="reset"  class="btn btn-default btn-sm">취소</button>
-					<button data-btn="list" type="button" class="btn btn-default btn-sm">목록</button>
+					<button type="reset" class="btn btn-default btn-sm">취소</button>
 					
 				</form>
 			</div>
 			<div class="panel-footer">스프링게시판-뇽뇽이</div>
 		</div>
 	</div>
-	
-	<form id="frm" action="" method="get">
-		<input id="idx" type="hidden" name="idx" value="${vo.idx}">
-	</form>
-	
 
 	<script type="text/javascript">
-		$(document).ready(function(){
-			$("button").on("click", function(e) {
-				var formData = $("#frm");
-				var btn = $(this).data("btn");
-				
-				if (btn == "list") {
-					formData.attr("action", "${cpath}/board/list");
-					formData.find("#idx").remove();
-				}
-				
-				formData.submit();
-				
-			});
-		})
 		
 	
 	</script>
+
+
 </body>
 </html>
