@@ -1245,6 +1245,14 @@ c. 프로필 사진 변경
 > SpringMVC07 답글기능 추가
 
 
+### 10월 11일
+
+1. `<c:out value="${vo.title}"></c:out>` : XSS 방어를 위해 사
+
+#### JSTL 정리
+
+<table><thead><tr><th>Tags</th><th>Description</th></tr></thead><tbody><tr><td>c:out</td><td>&lt;% = ... %&gt; 태그 작동 방식과 유사한 표현식의 결과를 표시</td></tr><tr><td>c:import</td><td>상대 또는 절대 URL을 검색하여 내용을 'var'의 문자열, 'varReader'의 Reader 또는 페이지에 표시</td></tr><tr><td>c:set</td><td>평가중인 표현식의 결과를 'scope'변수에 설정</td></tr><tr><td>c:remove</td><td>특정 범위에서 지정된 범위 변수를 제거하는 데 사용</td></tr><tr><td>c:catch</td><td>본문에서 발생하는 Throwable 예외를 포착하는 데 사용</td></tr><tr><td>c:if</td><td>조건을 테스트하는 데 사용되는 조건부 태그이며 표현식이 참인 경우에만 본문 내용을 표시</td></tr><tr><td>c:choose, c:when, c:otherwise</td><td>평가 된 조건이 true 인 경우 본문 내용을 포함하는 간단한 조건부 태그</td></tr><tr><td>c:forEach</td><td>기본 반복 태그, 고정 된 횟수 또는 초과 수집 동안 중첩 된 본문 내용을 반복</td></tr><tr><td>c:forTokens</td><td>제공된 델리 미터로 분리 된 토큰을 반복</td></tr><tr><td>c:param</td><td>포함하는 'import'태그의 URL에 매개 변수를 추가</td></tr><tr><td>c:redirect</td><td>브라우저를 새 URL로 리디렉션하고 컨텍스트 기준 URL을 지원</td></tr><tr><td>c</td><td>url</td></tr></tbody></table>
+
 
 
 
