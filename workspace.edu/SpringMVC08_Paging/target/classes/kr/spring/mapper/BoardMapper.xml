@@ -57,9 +57,19 @@
 		
 	</insert>
 	
-	<select id="getList" resultType="kr.spring.entity.Board">
+	<select id="getList" parameterType="kr.spring.entity.Criteria" resultType="kr.spring.entity.Board">
 		SELECT * FROM TBLBOARD
 		ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
+		LIMIT #{pageStart}, #{perPageNum}
 	</select>
+	
+	
+	<select id="totalCount" resultType="int" >
+		SELECT COUNT(*) FROM TBLBOARD
+	</select>
+	
+	
+	
+	
 	
 </mapper>

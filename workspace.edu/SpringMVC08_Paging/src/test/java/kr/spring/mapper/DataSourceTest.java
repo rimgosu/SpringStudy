@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import kr.spring.entity.Board;
+import kr.spring.entity.Criteria;
 import kr.spring.service.BoardServiceImpl;
 import lombok.extern.log4j.Log4j;
 
@@ -66,30 +67,32 @@ public class DataSourceTest {
 //   }
    
 	
-	  @Test 
-	  public void testController() throws Exception{ 
-		  
-		  log.info(
-				   mockMvc.perform(MockMvcRequestBuilders.get("/board/modify?idx")) //perform - 요청하다
-				   .andReturn() // return값을 받아오겠다. 
-				   .getModelAndView() //controller의 model값과iew경로를 다 받아오겠다. 
-				   );  // 콘솔창에 출력하는거임. }
-	 
-				  
-	  }
+//	  @Test 
+//	  public void testController() throws Exception{ 
+//		  
+//		  log.info(
+//				   mockMvc.perform(MockMvcRequestBuilders.get("/board/modify?idx")) //perform - 요청하다
+//				   .andReturn() // return값을 받아오겠다. 
+//				   .getModelAndView() //controller의 model값과iew경로를 다 받아오겠다. 
+//				   );  // 콘솔창에 출력하는거임. }
+//	 
+//				  
+//	  }
 	 
    
    
-//   @Test
-//   //10/05
-//   public void testGetList() {
-//	   List<Board> list = service.getList();
-//	   for(Board vo: list) {
-//		   System.out.println(vo.toString());
-//	   }
-//   }  
+   @Test
+   public void testGetList() {
+	   Criteria cri = new Criteria();
+	   cri.setPage(2);
+	   cri.setPerPageNum(5);
+	   List<Board> list = service.getList(cri);
+	   for(Board vo: list) {
+		   System.out.println(vo.toString());
+	   }
+   }  
 //   
-//   @Test  //mapper 작동 ㄷ잘되는지 테스트         
+//   @Test  //mapper 작동 잘되는지 테스트         
 //   public void testGetList() {
 //	   List<Board> list  = mapper.getList();
 //	   for(Board vo : list) {
