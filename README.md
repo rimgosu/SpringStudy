@@ -1280,7 +1280,7 @@ c. 프로필 사진 변경
 
 
 #### 페이징
-> SpringMVC07 → SpringMVC08
+> SpringMVC07 → SpringMVC08_Paging
 
 1. 페이징 기본 설정 Class
 
@@ -1289,5 +1289,26 @@ c. 프로필 사진 변경
 - [PageMaker.java](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC08_Paging/src/main/java/kr/spring/entity/PageMaker.java)
 
 
+
+
+### 10월 12일 - 페이징2
+
+> SpringMVC08_Paging
+
+- pageStart ~ perPageNum
+```
+LIMIT #{pageStart}, #{perPageNum}
+```
+
+- [부트스트랩 페이지네이션](https://www.w3schools.com/bootstrap/bootstrap_pagination.asp)
+
+- [사용한 부트스트랩 페이지네이션 예시](https://www.w3schools.com/bootstrap/tryit.asp?filename=trybs_pagination_active&stacked=h)
+
+
+- 모델 정보 자동 갱신
+```
+// 다음과 같이 쓰면 modelAttribute 바로 갱신 가능.
+@ModelAttribute("cri") Criteria cri
+```
 
 
