@@ -1362,11 +1362,4 @@ rttr.addAttribute("perPageNum", cri.getPerPageNum());
 SELECT * FROM TBLBOARD
 <include refid="search" />
 ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
-``
-
-
-
-
-
-
-
+```
