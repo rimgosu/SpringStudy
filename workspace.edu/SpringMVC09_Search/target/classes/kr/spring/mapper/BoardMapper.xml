@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.spring.mapper.BoardMapper">
+
+
+	<sql id="search" >
+		<if test="type=='writer'">
+			where writer like concat('%', #{keyword}, '%')
+		</if>
+		<if test="type=='title'">
+			where title like concat('%', #{keyword}, '%')
+		</if>
+		<if test="type=='content'">
+			where content like concat('%', #{keyword}, '%')
+		</if>
+	</sql>
+
+	<select id="getList" parameterType="kr.spring.entity.Criteria" resultType="kr.spring.entity.Board">
+		SELECT * FROM TBLBOARD
+		<include refid="search" />
+		ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
+		LIMIT #{pageStart}, #{perPageNum}
+	</select>
+
+	<select id="totalCount" resultType="int" parameterType="kr.spring.entity.Criteria">
+		SELECT COUNT(*) FROM TBLBOARD
+		<include refid="search" />
+	</select>
+
+	<insert id="insert" parameterType="kr.spring.entity.Board">
+		INSERT INTO TBLBOARD(IDX,MEMID, TITLE, CONTENT, WRITER, BOARDGROUP, BOARDSEQUENCE, BOARDLEVEL, BOARDAVAILABLE)
+		SELECT IFNULL(MAX(IDX)+1, 1),#{memID},#{title},#{content},#{writer}, IFNULL(MAX(BOARDGROUP)+1, 1), 0,0,1 FROM TBLBOARD
+	</insert>
+	<insert id="insertSelectKey" parameterType="kr.spring.entity.Board">
+	         <!-- id,boardGroup만 가져와서 board타입에 넣고 befor= 이전에 실행하겠다. -->
+			<selectKey keyProperty ="idx,boardGroup" resultType="kr.spring.entity.Board" order="BEFORE">
+				SELECT IFNULL(MAX(IDX)+1, 1) as  idx,
+				       IFNULL(MAX(BOARDGROUP)+1, 1) as boardGroup
+				       FROM TBLBOARD
+			</selectKey>
+		INSERT INTO TBLBOARD(IDX, MEMID, TITLE, CONTENT, WRITER, BOARDGROUP, BOARDSEQUENCE, BOARDLEVEL, BOARDAVAILABLE)
+		VALUES(#{idx},#{memID},#{title},#{content},#{writer},#{boardGroup},0,0,1)
+		
+	</insert>
+	<select id="login" resultType="kr.spring.entity.Member" parameterType="kr.spring.entity.Member">
+		SELECT * FROM TBLMEMBER WHERE MEMID=#{memID} AND MEMPWD = #{memPwd} 
+	</select>
+
+	<select id="read" parameterType="int" resultType="kr.spring.entity.Board">
+		SELECT * FROM TBLBOARD WHERE IDX= #{idx}
+	</select>
+	
+	<update id="update" parameterType="kr.spring.entity.Board">
+		UPDATE TBLBOARD 
+		SET TITLE = #{title}, CONTENT = #{content}
+		WHERE IDX = #{idx}
+	</update>
+
+	<delete id="delete" parameterType="int">
+		UPDATE TBLBOARD
+		SET BOARDAVAILABLE=0 
+		WHERE IDX=#{idx}
+	</delete>
+
+	<update id="replySeqUpdate" parameterType="kr.spring.entity.Board">
+		UPDATE TBLBOARD
+		SET BOARDSEQUENCE = BOARDSEQUENCE +1
+		WHERE BOARDGROUP = #{boardGroup} 
+		AND BOARDSEQUENCE > #{boardSequence}
+	</update>
+	
+	<insert id="replyInsert" parameterType="kr.spring.entity.Board">
+	         <!-- id,boardGroup만 가져와서 board타입에 넣고 before= 이전에 실행하겠다. -->
+			<selectKey keyProperty ="idx" resultType="kr.spring.entity.Board" order="BEFORE">
+				SELECT IFNULL(MAX(IDX)+1, 1) as  idx
+				       FROM TBLBOARD
+			</selectKey>
+		INSERT INTO TBLBOARD(IDX, MEMID, TITLE, CONTENT, WRITER, BOARDGROUP, BOARDSEQUENCE, BOARDLEVEL, BOARDAVAILABLE)
+		VALUES(#{idx},#{memID},#{title},#{content},#{writer},
+		#{boardGroup},#{boardSequence},#{boardLevel},1)
+		
+	</insert>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+</mapper>
