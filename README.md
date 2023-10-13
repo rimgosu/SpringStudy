@@ -1311,4 +1311,62 @@ LIMIT #{pageStart}, #{perPageNum}
 @ModelAttribute("cri") Criteria cri
 ```
 
+#### @어노테이션 정리
+<table><thead><tr><th>분류</th><th>Annotation</th><th>설명</th></tr></thead><tbody><tr><td><strong>Spring Core</strong></td><td></td><td></td></tr><tr><td></td><td>@Component</td><td>개발자가 생성한 Class를 Spring의 Bean으로 등록하기 위한 Annotation.</td></tr><tr><td></td><td>@ComponentScan</td><td>Bean을 등록 될 클래스들을 스캔하여 Bean으로 등록해줍니다.</td></tr><tr><td></td><td>@Bean</td><td>제어가 불가능한 외부 라이브러리 등을 Bean으로 만들 때 사용.</td></tr><tr><td></td><td>@Autowired</td><td>Spring에서 Bean 객체를 주입받기 위한 Annotation.</td></tr><tr><td><strong>Spring MVC</strong></td><td></td><td></td></tr><tr><td></td><td>@Controller</td><td>해당 Class가 Controller의 역할임을 명시하기 위한 Annotation.</td></tr><tr><td></td><td>@RequestHeader</td><td>Request의 header값을 가져올 수 있는 Annotation.</td></tr><tr><td></td><td>@RequestMapping</td><td>URI의 요청과 Annotation value 값이 일치하면 실행.</td></tr><tr><td></td><td>@RequestParam</td><td>URL의 파라미터를 메소드 인자와 매칭.</td></tr><tr><td></td><td>@RequestBody</td><td>Body의 데이터를 메소드 인자와 매칭.</td></tr><tr><td></td><td>@ModelAttribute</td><td>HTTP parameter, Body 내용을 객체에 바인딩.</td></tr><tr><td></td><td>@ResponseBody</td><td>메소드에서 리턴된 값이 View에 출력되지 않고 HTTP Response Body에 작성.</td></tr><tr><td></td><td>@GetMapping</td><td>RequestMapping(Method=RequestMethod.GET)과 동일 역할.</td></tr><tr><td></td><td>@PostMapping</td><td>RequestMapping(Method=RequestMethod.POST)과 동일 역할.</td></tr><tr><td><strong>Spring Boot Test</strong></td><td></td><td></td></tr><tr><td></td><td>@SpringBootTest</td><td>Spring Boot Test에 필요한 의존성 제공.</td></tr><tr><td></td><td>@Test</td><td>JUnit에서 테스트 대상을 표시.</td></tr><tr><td><strong>Lombok</strong></td><td></td><td></td></tr><tr><td></td><td>@Setter</td><td>Class의 모든 필드에 대한 Setter method 생성.</td></tr><tr><td></td><td>@Getter</td><td>Class의 모든 필드에 대한 Getter method 생성.</td></tr><tr><td></td><td>@AllArgsConstructor</td><td>모든 필드 값을 파라미터로 받는 생성자 추가.</td></tr><tr><td></td><td>@NoArgsConstructor</td><td>기본 생성자 자동 추가.</td></tr><tr><td></td><td>@ToString</td><td>Class의 모든 필드에 대한 toString method 생성.</td></tr></tbody></table>
+
+
+### 10월 13일 - 페이징3, 검색
+
+> SpringMVC08_Paging <br>
+> SpringMVC09_Search <br>
+
+1. 페이징 유지
+
+- 매개변수로 값 받기
+
+```
+public String 함수(Criteria cri, RedirectAttributes rttr){}
+```
+
+
+- **페이징 값 유지**
+
+```
+rttr.addAttribute("page", cri.getPage());
+rttr.addAttribute("perPageNum", cri.getPerPageNum());
+```
+
+
+> SpringMVC08_Paging 복사, SpringMVC09_Search 붙여기
+
+1. sql의 JSTL (동적 sql)
+
+- 'search'로 묶기 : sql
+```
+<sql id="search" >
+	<if test="type=='writer'">
+		where writer like concat('%', #{keyword}, '%')
+	</if>
+	<if test="type=='title'">
+		where title like concat('%', #{keyword}, '%')
+	</if>
+	<if test="type=='content'">
+		where content like concat('%', #{keyword}, '%')
+	</if>
+</sql>
+```
+
+- 묶은거 사용 : include
+
+```
+SELECT * FROM TBLBOARD
+<include refid="search" />
+ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
+``
+
+
+
+
+
+
 
