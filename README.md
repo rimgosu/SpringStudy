@@ -1493,3 +1493,4 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 
 
 17. 테이블 생성을 마쳤으면, spring.jpa.hibernate.ddl-auto=update로 지정
+    - 이제 더이상 테이블을 지우고 생성하지 않음.
