@@ -1369,7 +1369,17 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 
 
 ## Spring Boot
-### 10월 16일
+
+```
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+```
+
+### 10월 16일 (Spring Boot Settings)
 
 - 스프링 부트 프로젝트 만들기
 1. Tomcat 실행 중지
@@ -1420,6 +1430,66 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 11. pom.xml 버전 수정 - 프로젝트 클릭 - alt + F5 - Force Update of Snapshots/Releases
     - Spring boot version : 2.7.3
     - java version : 1.8
+    - pom.xml - 우클릭 - Spring - Add Starter
+    	- MySQL Driver, Spring Data JPA - pom.xml 체크
+     	- MySQL 추가할 때 _버그_ 있다. groupID : mysql, artifactId : mysql-connector-java 로 고쳐줄 것
     
-12. SpringMvc10BootInitApplication - 우클릭 - Run as - 2 Spring boot App
+12. SpringMvc10BootInitApplication - 우클릭 - run as - 2 Spring boot App - 주소 직접 입력해서 접속하면 됨
 
+13. Port 8081 was already in use. Error : 서버 중지 - 다시 실행
+
+14. application.properties, MySQL 설정
+	```
+ 	# MySQL 추가 
+ 	spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+	spring.datasource.url=jdbc:mysql://localhost:3306/com
+	spring.datasource.username=com
+	spring.datasource.password=com01
+ 	```
+
+15. application.properties, JPA*Hiberbate 설정 
+	```
+	# JPA 설정
+ 	spring.jpa.database-platform=org.hibernate.dialect.MySQL5InnoDBDialect
+	# 스키마 생성 (create, update)
+	spring.jpa.hibernate.ddl-auto=create
+	# JPA가 실행하고 실행된 SQL문장 보기
+	spring.jpa.show-sql=true
+	# 실제 JPA 구현체인 Hibernate가 동작하면서 발생하는 SQL을 포멧팅해서 출력
+	spring.jpa.properties.hibernate.format_sql=true
+ 	```
+
+16. [Board Entity 생성](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC10BootInit/src/main/java/kr/spring/entity/Board.java)
+	- SQL 없이 테이블 생성하기 
+
+
+#### JPA @어노테이션 정리
+
+| 카테고리            | 어노테이션          | 설명                                         |
+|-------------------|-------------------|-------------------------------------------|
+| 기본 어노테이션        | `@Entity`         | 클래스가 엔티티임을 지정                          |
+|                    | `@Table`          | 엔티티가 매핑될 테이블 정보 지정                     |
+|                    | `@Id`             | 기본 키 필드를 지정                               |
+|                    | `@GeneratedValue` | 기본 키 생성 전략을 지정                           |
+| 열 매핑 어노테이션      | `@Column`         | 필드를 데이터베이스 컬럼에 매핑                     |
+|                    | `@Transient`      | 해당 필드가 데이터베이스 컬럼에 매핑되지 않게 지정           |
+|                    | `@Enumerated`     | `enum` 타입을 컬럼에 매핑                          |
+|                    | `@Temporal`       | 날짜/시간 타입을 매핑                             |
+|                    | `@Lob`            | 큰 객체나 문자열 매핑 (`BLOB`, `CLOB`)              |
+| 관계 매핑 어노테이션     | `@OneToOne`       | 일대일 관계 매핑                                 |
+|                    | `@OneToMany`      | 일대다 관계 매핑                                 |
+|                    | `@ManyToOne`      | 다대일 관계 매핑                                 |
+|                    | `@ManyToMany`     | 다대다 관계 매핑                                 |
+|                    | `@JoinColumn`     | 외래 키 컬럼 지정                                |
+|                    | `@JoinTable`      | 다대다 관계의 연결 테이블 지정                        |
+| 상속 매핑 어노테이션     | `@Inheritance`    | 상속 전략 지정                                  |
+|                    | `@DiscriminatorColumn` | 상속 테이블 간 구분 컬럼 지정                  |
+|                    | `@DiscriminatorValue`  | 구분 컬럼의 값 지정                          |
+| 기타 어노테이션        | `@Embedded`       | 내장 타입 사용 지정                              |
+|                    | `@Embeddable`     | 값 타입을 내장 타입으로 정의                         |
+|                    | `@AttributeOverride`   | 내장 타입의 속성 재정의                         |
+|                    | `@SecondaryTable` | 엔티티를 두 개 이상의 테이블에 매핑                    |
+| 라이프사이클 콜백 어노테이션 | `@PrePersist` 등    | 엔티티 라이프사이클 이벤트에 대한 콜백 정의            |
+
+
+17. 테이블 생성을 마쳤으면, spring.jpa.hibernate.ddl-auto=update로 지정
