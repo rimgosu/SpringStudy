@@ -1363,3 +1363,49 @@ SELECT * FROM TBLBOARD
 <include refid="search" />
 ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 ```
+
+
+
+
+
+## Spring Boot
+### 10월 16일
+
+- 스프링 부트 프로젝트 만들기
+1. Tomcat 실행 중지
+2. Project Explorer - 우클릭 - New - Other - Spring Starter Project
+3. https://start.spring.io 접속 : 웹에서 편리하게 프로젝트 만들 수 있다.
+
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/8b34afee-e84f-425f-a58c-8f577b3c9109)
+
+4. SpringMVC10_SpringInit 생성
+	
+	| Key               | Value               |
+	|-------------------|---------------------|
+	| Type              | Maven               |
+	| Packaging         | Jar                 |
+	| Java Version      | 8                   |
+	| Package             | kr.spring           |
+	| Spring Boot Version | 3.1.4             |
+
+5. 원하는 API 체크해서 넣어주기
+
+	| Category          | Details                             |
+	|-------------------|-------------------------------------|
+	| Developer Tools  | Lombok, Spring Boot DevTools       |
+	| Web               | Spring Web                         |
+	| SQL               | 추후 학습 예정                      |
+
+6. Spring Boot는 내장 Tomcat이 존재해서, Tomcat에 등록할 필요가 없다.
+
+7. Build Path - Java version : Workspace default JRE (자바 버전을 Workspace에 맞추겠다)
+
+8. resources
+
+	| Folder          | Details                             |
+	|-------------------|-------------------------------------|
+	| Static  | css, js      |
+	| Templates               | HTML                        |
+	| application.properties               | 웹 애플리케이션의 환경 설정 파일. .yaml로 변환 가능하여 사용하기도 한다.                      |
+
+
