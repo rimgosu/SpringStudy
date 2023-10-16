@@ -1409,3 +1409,17 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 	| application.properties               | 웹 애플리케이션의 환경 설정 파일. .yaml로 변환 가능하여 사용하기도 한다.                      |
 
 
+9. application.properties - 우클릭- Resource - Other - UTF-8 (한글깨짐 방지)
+10. application.properties - 우클릭 - Open With - Generic Editor (Properties에서 자동완성 가능하게 함)
+	
+	```
+	server.port=8081
+	server.servlet.context-path=/boot
+	```
+
+11. pom.xml 버전 수정 - 프로젝트 클릭 - alt + F5 - Force Update of Snapshots/Releases
+    - Spring boot version : 2.7.3
+    - java version : 1.8
+    
+12. SpringMvc10BootInitApplication - 우클릭 - Run as - 2 Spring boot App
+
