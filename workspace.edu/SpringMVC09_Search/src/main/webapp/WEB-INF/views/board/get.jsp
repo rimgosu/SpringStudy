@@ -62,10 +62,13 @@
 
 				<form id="frm" action="" method="get">
 					<input id="idx" type="hidden" name="idx" value="${vo.idx}">
-					<input type="hidden" id="page" name="page"
-						value="${cri.page}"> <input type="hidden"
-						id="perPageNum" name="perPageNum"
+					<input type="hidden" id="page" name="page" value="${cri.page}">
+					<input type="hidden" id="perPageNum" name="perPageNum"
 						value="${cri.perPageNum}">
+					<!-- type과 keyword를 넘기기 위한 부분 추가 -->
+					<input type="hidden" name="type" value="${cri.type}">
+					<input type="hidden" name="keyword" value="${cri.keyword}">
+					
 				</form>
 
 			</div>
@@ -75,26 +78,25 @@
 
 	<script type="text/javascript">
 		// 링크처리
-		$(document).ready(function(){
-			$("button").on("click", function(e){
+		$(document).ready(function() {
+			$("button").on("click", function(e) {
 				var formData = $("#frm");
 				var btn = $(this).data("btn");
-				
-				if(btn == "reply") {
+
+				if (btn == "reply") {
 					formData.attr("action", "${cpath}/board/reply");
-				} else if(btn == "modify") {
+				} else if (btn == "modify") {
 					formData.attr("action", "${cpath}/board/modify");
-				} else if(btn == "list") {
+				} else if (btn == "list") {
 					formData.attr("action", "${cpath}/board/list");
 					formData.find("#idx").remove()
 				}
-				
+
 				formData.submit();
-				
+
 			});
-			
+
 		});
-	
 	</script>
 
 

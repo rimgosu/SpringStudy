@@ -23,9 +23,11 @@
 			<div class="panel-heading">Board</div>
 			<div class="panel-body">
 				<form id="frm" method="post">
-
-					<input type="hidden" id="page" name="page" value="${cri.page}">
-					<input type="hidden" id="perPageNum" name="perPageNum"
+					<!-- type과 keyword를 넘기기 위한 부분 추가 -->
+					<input type="hidden" name="type" value="${cri.type}"> <input
+						type="hidden" name="keyword" value="${cri.keyword}"> <input
+						type="hidden" id="page" name="page" value="${cri.page}"> <input
+						type="hidden" id="perPageNum" name="perPageNum"
 						value="${cri.perPageNum}"> <input id="memID" type="hidden"
 						name="memID" value="${mvo.memID}">
 					<!-- 부모글의 게시글 번호 -->

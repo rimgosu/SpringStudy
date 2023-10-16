@@ -28,6 +28,7 @@ public class BoardController {
 	public String reply(@RequestParam("idx") int idx, Model model, @ModelAttribute("cri") Criteria cri) {
 		Board vo = service.get(idx);
 		model.addAttribute("vo", vo);
+		
 		return "board/reply";
 	}
 	@PostMapping("/reply")
@@ -35,6 +36,10 @@ public class BoardController {
 		service.reply(vo);
 		rttr.addAttribute("page", cri.getPage());
 		rttr.addAttribute("perPageNum", cri.getPerPageNum());
+		rttr.addAttribute("type", cri.getType());
+		rttr.addAttribute("keyword", cri.getKeyword());
+		
+		
 		return "redirect:/board/list";
 	}
 	@GetMapping("test")
@@ -49,6 +54,10 @@ public class BoardController {
 		service.remove(idx);
 		rttr.addAttribute("page", cri.getPage());
 		rttr.addAttribute("perPageNum", cri.getPerPageNum());
+		
+		rttr.addAttribute("type", cri.getType());
+		rttr.addAttribute("keyword", cri.getKeyword());
+		
 		return"redirect:/board/list";
 	}
 
@@ -67,6 +76,10 @@ public class BoardController {
 		service.modify(vo);
 		rttr.addAttribute("page", cri.getPage());
 		rttr.addAttribute("perPageNum", cri.getPerPageNum());
+		
+		rttr.addAttribute("type", cri.getType());
+		rttr.addAttribute("keyword", cri.getKeyword());
+		
 		return "redirect:/board/list";
 	}
 	
