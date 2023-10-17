@@ -1557,9 +1557,16 @@ spring.mvc.view.suffix=.jsp
 
 
 
-
-
-
+#### 부트스트랩 4
+- row - col-log-{num}
+- 원하는 크기만큼 화면 분할 가능
+```
+<div class="row">
+	<div class="col-lg-2"></div>
+	<div class="col-lg-5"></div>
+	<div class="col-lg-5"></div>
+</div>
+```
 
 
 
