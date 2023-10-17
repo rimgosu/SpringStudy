@@ -1368,7 +1368,7 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 
 
 
-## Spring Boot
+# Spring Boot
 
 ```
   .   ____          _            __ _ _
@@ -1379,7 +1379,9 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
  =========|_|==============|___/=/_/_/_/
 ```
 
-### 10월 16일 (Spring Boot Settings)
+## Spring Boot Settings
+
+### 10월 16일
 
 - 스프링 부트 프로젝트 만들기
 1. Tomcat 실행 중지
