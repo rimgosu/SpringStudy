@@ -1527,6 +1527,7 @@ private BoardRepository boardRepository;
 3. JPA 내장 함수 사용 (SQL문 없이 DB 기능 사용)
 ```
 List<Board> list = boardRepository.findAll();
+public Board get(Long idx);
 boardRepository.save(vo);
 ```
 
