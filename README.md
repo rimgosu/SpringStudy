@@ -1494,3 +1494,74 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 
 17. 테이블 생성을 마쳤으면, spring.jpa.hibernate.ddl-auto=update로 지정
     - 이제 더이상 테이블을 지우고 생성하지 않음.
+
+
+
+### 10월 17 - 스프링 부트2
+> [JPA 참고 문서](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#preface)
+
+1. kr.spring.repository
+- JpaRepository를 상속 받아야 한다.
+	- `<table 이름/primary key>`
+```
+@Repository // @Mapper 랑 같음 (생략 가능)
+public interface BoardRepository extends JpaRepository<Board, Long>{}
+```
+- BoardRepository == MyBatis Mapper과 동일한 기능. 사용하려면 @Autowired로 사용하면된다.
+```
+// 다른 클래스
+@Autowired
+private BoardRepository boardRepository;
+```
+
+2. kr.spring.service
+
+| Type           | Name            | Annotation    |
+| -------------- | --------------- | ------------- |
+| Interface      | BoardService    |               |
+| Class          | BoardServiceImpl| @Service      |
+
+
+3. JPA 내장 함수 사용 (SQL문 없이 DB 기능 사용)
+```
+List<Board> list = boardRepository.findAll();
+boardRepository.save(vo);
+```
+
+
+
+#### Spring Boot ViewResolver 설정
+1. application.properties
+```
+spring.mvc.view.prefix=/WEB-INF/board/
+spring.mvc.view.suffix=.jsp
+```
+
+2. pom.xml
+
+- jstl 설치
+```
+<dependency>
+	<groupId>javax.servlet</groupId>
+	<artifactId>jstl</artifactId>
+</dependency>
+```
+
+- jsp 설치
+```
+<dependency>
+	<groupId>org.apache.tomcat.embed</groupId>
+	<artifactId>tomcat-embed-jasper</artifactId>
+</dependency>
+```
+
+
+
+
+
+
+
+
+
+
+
