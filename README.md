@@ -1497,7 +1497,7 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 
 
 
-### 10월 17 - 스프링 부트2
+### 10월 17일 - 스프링 부트2
 > [JPA 참고 문서](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#preface)
 
 1. kr.spring.repository
