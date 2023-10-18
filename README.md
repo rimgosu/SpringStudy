@@ -1593,12 +1593,12 @@ spring.mvc.view.suffix=.jsp
 
 1. pom.xml - 우클릭 - spring - security - spring security - pom.xml 추가 - 완료
 2. spring-security-taglibs 추가
-   ```
-   <dependency>
-	 <groupId>org.springframework.security</groupId>
-	 <artifactId>spring-security-taglibs</artifactId>
-   </dependency>
-   ```
+```
+<dependency>
+	<groupId>org.springframework.security</groupId>
+	<artifactId>spring-security-taglibs</artifactId>
+</dependency>
+```
 
 3. [Member Entity](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/main/java/kr/spring/entity/Member.java)
 - Spring Security에서는 반드시 username, password, role를 지정해줘야한다.
