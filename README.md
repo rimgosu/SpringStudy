@@ -1589,7 +1589,7 @@ spring.mvc.view.suffix=.jsp
 
 ## Spring Boot Security
 
-### 10월 18일 - 스프링부부트 시큐리티
+### 10월 18일 - Spring Boot Security Settings
 
 1. pom.xml - 우클릭 - spring - security - spring security - pom.xml 추가 - 완료
 2. spring-security-taglibs 추가
@@ -1613,6 +1613,13 @@ private String password;
 private Role role;
 ```
 
+- /WEB-IBF/board만 ViewResolver면 안되므로, application.properties에서
+- spring.mvc.view.prefix=/WEB-INF/board/를 다음과 같이 수정해준다.
+
+```
+spring.mvc.view.prefix=/WEB-INF/
+```
+
 4. Role Entity - Enum
 - enumeration, 상수 저장 집함
 ```
@@ -1629,11 +1636,16 @@ public enum Role {
 
 
 6. kr.spring.config
-7. UserDetailsServiceImpl : UserDetailsService 기능 실행
+7. [UserDetailsServiceImpl](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/main/java/kr/spring/config/UserDetailsServiceImpl.java)
+- UserDetailsService 기능 실행
+
+8. [SecurityConfiguration](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/main/java/kr/spring/config/SecurityConfiguration.java)
+
+- Security 환경설정
 
 
 
-
+### Spring Boot Security 활용
 
 
 
