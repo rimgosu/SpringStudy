@@ -1602,6 +1602,7 @@ spring.mvc.view.suffix=.jsp
 
 3. [Member Entity](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/main/java/kr/spring/entity/Member.java)
 - Spring Security에서는 반드시 username, password, role를 지정해줘야한다.
+- MemberRepository 생성
 ```
 @Id
 private String username;
@@ -1611,6 +1612,24 @@ private String password;
 @Enumerated(EnumType.STRING)
 private Role role;
 ```
+
+4. Role Entity - Enum
+- enumeration, 상수 저장 집함
+```
+public enum Role {
+	ADMIN, MANAGER, MEMBER;
+}
+```
+
+
+5. CustomUser Entity
+- Spring Context Holder에 Member Entity 정보를 담기 위해선 Spring Security에서 제공하는 User 엔티티의 형식으로 바꿔줄 필요가 있음.
+- Member → CustomUser → User → Spring Context Holder
+- Spring context Holder: 보안 금고
+
+
+6. kr.spring.config
+7. UserDetailsServiceImpl : UserDetailsService 기능 실행
 
 
 
