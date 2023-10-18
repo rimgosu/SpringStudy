@@ -1494,6 +1494,19 @@ ORDER BY BOARDGROUP DESC, BOARDSEQUENCE ASC
 | 라이프사이클 콜백 어노테이션 | `@PrePersist` 등    | 엔티티 라이프사이클 이벤트에 대한 콜백 정의            |
 
 
+#### JPA 매서드 정리
+
+| 작업     | 메소드         | 설명                                         |
+|----------|---------------|----------------------------------------------|
+| Select   | `find()`      | 단일 엔터티 검색                             |
+|          | `findAll()`   | 모든 엔터티 검색                             |
+|          | `findById()`  | 주어진 ID를 가진 엔터티 검색                  |
+| Insert   | `save()`      | 새 엔터티 저장 또는 업데이트                   |
+| Delete   | `deleteById()`| 주어진 ID를 가진 엔터티 삭제                  |
+| Update   | `save()`      | 이미 존재하는 엔터티의 정보 업데이트 (또는 삽입)|
+
+
+
 17. 테이블 생성을 마쳤으면, spring.jpa.hibernate.ddl-auto=update로 지정
     - 이제 더이상 테이블을 지우고 생성하지 않음.
 
@@ -1570,6 +1583,43 @@ spring.mvc.view.suffix=.jsp
 	<div class="col-lg-5"></div>
 </div>
 ```
+
+
+
+
+## Spring Boot Security
+
+### 10월 18일 - 스프링부부트 시큐리티
+
+1. pom.xml - 우클릭 - spring - security - spring security - pom.xml 추가 - 완료
+2. spring-security-taglibs 추가
+   ```
+   <dependency>
+		 <groupId>org.springframework.security</groupId>
+		 <artifactId>spring-security-taglibs</artifactId>
+	 </dependency>
+   ```
+
+3. [Member Entity](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/main/java/kr/spring/entity/Member.java)
+- Spring Security에서는 반드시 username, password, role를 지정해줘야한다.
+```
+@Id
+private String username;
+
+private String password;
+
+@Enumerated(EnumType.STRING)
+private Role role;
+```
+
+
+
+
+
+
+
+
+
 
 
 
