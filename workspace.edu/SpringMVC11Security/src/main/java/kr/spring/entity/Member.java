@@ -2,6 +2,8 @@ package kr.spring.entity;
 
 import javax.management.relation.Role;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 
 import lombok.Data;
@@ -19,6 +21,7 @@ public class Member {
 	
 	private String password; // Spring Security에서는 pw가 아닌 password로 지정
 	
+	@Enumerated(EnumType.STRING) // @Enumerated => 열거형 (권한이 여러개이기 때문에)
 	private Role role;
 	
 	private String name;
