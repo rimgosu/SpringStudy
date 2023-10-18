@@ -1,6 +1,5 @@
 package kr.spring.entity;
 
-import javax.management.relation.Role;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
