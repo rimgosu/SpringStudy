@@ -1595,9 +1595,9 @@ spring.mvc.view.suffix=.jsp
 2. spring-security-taglibs 추가
    ```
    <dependency>
-		 <groupId>org.springframework.security</groupId>
-		 <artifactId>spring-security-taglibs</artifactId>
-	 </dependency>
+	 <groupId>org.springframework.security</groupId>
+	 <artifactId>spring-security-taglibs</artifactId>
+   </dependency>
    ```
 
 3. [Member Entity](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/main/java/kr/spring/entity/Member.java)
