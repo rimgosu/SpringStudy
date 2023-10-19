@@ -1,4 +1,4 @@
-![image](https://github.com/rimgosu/SpringStudy/assets/120752098/dbe4a854-f60f-4e27-9a7c-9c411d1662ad)
+![image](https://github.com/rimgosu/SpringStudy/assets/120752098/dbe4a854-f60f-4e27-9a7c-9c411d1662ad) 
  
 
 
