@@ -1688,3 +1688,6 @@ spring.mvc.static-path-pattern=/resources/**
 <!-- 권한정보 -->
 <c:set var="auth" value="${SPRING_SECURITY_CONTEXT.authentication.authorities}" />
 ```
+
+
+### [BOOK SEARCH, MAP 등 추가 공부 - 에버노트 (EVERNOTE)](https://www.evernote.com/shard/s484/client/snv?isnewsnv=true&noteGuid=6700c6ed-29e9-bf51-6444-e35085c08245&noteKey=hvTNL43iynMzMN39jkr3Fbp6fxpGK-S0v434YCvEO965M8uXhuQnrHTJVw&sn=https%3A%2F%2Fwww.evernote.com%2Fshard%2Fs484%2Fsh%2F6700c6ed-29e9-bf51-6444-e35085c08245%2FhvTNL43iynMzMN39jkr3Fbp6fxpGK-S0v434YCvEO965M8uXhuQnrHTJVw&title=19%25EC%259D%25BC%25EC%25B0%25A8%2B%25284H%2529)
