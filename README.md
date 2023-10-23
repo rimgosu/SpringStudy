@@ -1645,14 +1645,31 @@ public enum Role {
 
 
 
-### Spring Boot Security 활용
 
+### 10월 23일 - Spring Boot Security 활용
 
+1. login.jsp - [부트스트랩 로그인페이지](https://bootsnipp.com/snippets/dldxB)
+2. /resources/ 매핑
+```
+spring.mvc.static-path-pattern=/resources/**
+```
 
+3. [단위테스트를 통해 Member 정보 삽입](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/test/java/kr/spring/SpringMVC11SecurityApplicationTests.java)
 
+4. CustomUser - getter, setter 매서드 추가 `@Data`
+5. security 태그 추가
 
+```
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+```
 
+6. CustomUser 객체에 접근해 member 정보 가져오기
+   - security 태그로 가져온다.
+```
+<sec:authentication property="principal.member.name"/>
+<sec:authentication property="principal.member.role"/> 
+```
 
-
+7. `<sec:authorize>`
 
 
