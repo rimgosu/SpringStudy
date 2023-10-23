@@ -8,8 +8,8 @@
 
 ### 필수세팅
 1. 전자정부프레임워크
-   - 표준프레임워크 개발자 교육 교재 및 실습 for Win (V3.10.0)
-   - <https://www.egovframe.go.kr/home/ntt/nttRead.do?pagerOffset=0&searchKey=&searchValue=&menuNo=65&bbsId=4&nttId=1741>
+   - 표준프레임워크 개발자 교육 교재 및 실습 for Win (V4.0.0)
+   - <https://www.egovframe.go.kr/home/ntt/nttRead.do?pagerOffset=0&searchKey=&searchValue=&menuNo=65&bbsId=4&nttId=1743>
    - 다운로드 받고, 반드시 C:\ 경로에 저장할 것
   
 2. 스프링, 자바 업데이트
