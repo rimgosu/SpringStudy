@@ -1656,7 +1656,9 @@ spring.mvc.static-path-pattern=/resources/**
 
 3. [단위테스트를 통해 Member 정보 삽입](https://github.com/rimgosu/SpringStudy/blob/master/workspace.edu/SpringMVC11Security/src/test/java/kr/spring/SpringMVC11SecurityApplicationTests.java)
 
+#### Spring Security 정보 가져오기 - 첫번째 방법
 4. CustomUser - getter, setter 매서드 추가 `@Data`
+
 5. security 태그 추가
 
 ```
@@ -1671,5 +1673,18 @@ spring.mvc.static-path-pattern=/resources/**
 ```
 
 7. `<sec:authorize>`
+```
+<sec:authorize access="hasRole('ADMIN')">
+	내용을 작성하세요
+</sec:authorize>
+```
 
+#### Spring Security 정보 가져오기 - 두번째 방법
+8. `c:set`
 
+```
+<!-- 로그인한 계정정보 -->
+<c:set var="user" value="${SPRING_SECURITY_CONTEXT.authentication.principal}" />
+<!-- 권한정보 -->
+<c:set var="auth" value="${SPRING_SECURITY_CONTEXT.authentication.authorities}" />
+```
