@@ -1,3 +1,5 @@
+DROP TABLE AUTH;
+DROP TABLE MEMBER;
 -- JPA가 테이블 생성 후 기본값넣기
 INSERT INTO BOARD (TITLE, CONTENT, WRITER)
 VALUES('오늘 저녁에 하늘마당에서 보실 분', '내가 치킨 쏜다', '명훈쌤');
@@ -12,3 +14,4 @@ VALUES('나는요 Spring 좋은 거얼~', '아이쿠','아이유');
 
 
 SELECT * FROM BOARD;
+SELECT * FROM MEMBER;

@@ -3,8 +3,15 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
+<!-- Spring Security 관련 태그 라이브러리 -->
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 
 <c:set var="cpath" value="${pageContext.request.contextPath}" />
+
+<!-- 로그인한 계정정보 -->
+<c:set var="user" value="${SPRING_SECURITY_CONTEXT.authentication.principal}" />
+<!-- 권한정보 -->
+<c:set var="auth" value="${SPRING_SECURITY_CONTEXT.authentication.authorities}" />
 
 <!DOCTYPE html>
 <html lang="en">
@@ -32,19 +39,34 @@
 				<div class="col-lg-2">
 					<div class="card" style="min-height: 500px; max-height: 1000px;">
 						<div class="card-body">
-							<h4 class="card-title">GUEST</h4>
+							<h4 class="card-title">
+								<sec:authentication property="principal.member.name"/>
+							</h4>
 							<p class="card-text">회원님 Welcome!</p>
-							<form action="">
-								<div class="form-group">
-									<label for="memID">아이디</label>
-									<input type="text" class="form-control" id="memID" name="memID">
-								</div>
-								<div class="form-group">
-									<label for="memPwd">비밀번호</label>
-									<input type="password" class="form-control" id="memPwd" name="memPwd">
-								</div>
-								<button type="submit" class="form-control btn btn-sm btn-primary">로그인</button>
+							<form action="${cpath}/member/logout">
+								<button type="submit" class="form-control btn btn-sm btn-primary">로그아웃</button>
 							</form>
+							
+							<br>
+							현재 권한 : <sec:authentication property="principal.member.role"/> 
+							
+							<sec:authorize access="hasRole('ADMIN')">
+								<button class="btn btn-info form-control">관리자페이지</button>
+								<br><br>
+								<button class="btn btn-warning form-control">회원목록</button>
+								<br><br>
+								<button class="btn btn-success form-control">개인정보수정</button>
+							</sec:authorize>
+							
+							<sec:authorize access="hasRole('MANAGER')">
+								<button class="btn btn-warning form-control">회원목록</button>
+								<br><br>
+								<button class="btn btn-success form-control">개인정보수정</button>
+							</sec:authorize>
+							
+							<sec:authorize access="hasRole('MEMBER')">
+								<button class="btn btn-success form-control">개인정보수정</button>
+							</sec:authorize>
 						</div>
 					</div>
 				</div>
@@ -75,7 +97,7 @@
 				<div class="col-lg-5">
 					<div class="card" style="min-height: 500px; max-height: 1000px;">
 						<div class="card-body">
-							<form action="${cpath}/register" id="regForm" method="post">
+							<form action="${cpath}/board/register" id="regForm" method="post">
 							
 								<input type="hidden" id="idx" name="idx" value="">
 							
@@ -89,7 +111,7 @@
 								</div>
 								<div class="form-group">
 									<label for="writer">작성자</label>
-									<input type="text" class="form-control" id="writer" name="writer" placeholder="Enter Writer">
+									<input type="text" class="form-control" id="writer" name="writer" placeholder="Enter Writer" readonly="readonly" value="<sec:authentication property='principal.member.name'/>">
 								</div>
 								<div id="regDiv">								
 									<button type="button" data-oper="register" class="btn btn-sm btn-primary">등록</button>
@@ -128,10 +150,10 @@
 				} else if (oper == "reset") {
 					regForm[0].reset();
 				} else if (oper == "list") {
-					location.href = "${cpath}/list"
+					location.href = "${cpath}/board/list"
 				} else if (oper == "remove") {
 					var idx = regForm.find("#idx").val();
-					location.href = "${cpath}/remove?idx="+idx;
+					location.href = "${cpath}/board/remove?idx="+idx;
 				} else if (oper == "updateForm") {
 					regForm.find("#title").attr("readonly", false);
 					regForm.find("#content").attr("readonly", false);
@@ -149,7 +171,7 @@
 				var idx = $(this).attr("href");
 				
 				$.ajax({
-					url : "${cpath}/get",
+					url : "${cpath}/board/get",
 					type : "get",
 					data : {"idx": idx},
 					dataType : "json",
@@ -175,11 +197,19 @@
 			
 			regForm.find("#idx").val(vo.idx);
 			
+			if("${user.member.name}" == vo.writer) {
+				$("button[data-oper='updateForm']").attr("disabled", false);
+				$("button[data-oper='remove']").attr("disabled", false);
+			} else {
+				$("button[data-oper='updateForm']").attr("disabled", true);
+				$("button[data-oper='remove']").attr("disabled", true);
+			}
+			
 		};
 		
 		function goUpdate() {
 			var regForm = $("#regForm");
-			regForm.attr("action", "${cpath}/modify");
+			regForm.attr("action", "${cpath}/board/modify");
 			regForm.submit();
 		}
 		

@@ -6,8 +6,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.User;
 
+import lombok.Data;
+
 
 // Member => CustomUser => User => Spring Context Holder
+@Data
 public class CustomUser extends User{
 
 	private Member member;
