@@ -23,9 +23,9 @@ class SpringMVC11SecurityApplicationTests {
 	void contextLoads() {
 		// 회원가입테스트
 		Member m = new Member();
-		m.setUsername("pcw");
-		m.setPassword(passwordEncoder.encode("3456"));
-		m.setName("박치우");
+		m.setUsername("ddd");
+		m.setPassword(passwordEncoder.encode("5555"));
+		m.setName("서보경");
 		m.setRole(Role.MEMBER);
 		m.setEbled(true);
 		
